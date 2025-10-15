@@ -538,12 +538,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const isValid = await storage.verifyParcelCredentials(parcelId, codePhrase);
       
-      if (isValid) {
-        const parcel = await storage.getParcelById(parcelId);
-        res.json({ success: true, parcel });
-      } else {
-        res.status(401).json({ message: "Invalid parcel ID or code phrase" });
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid parcel ID or code phrase" });
       }
+
+      // Check if parcel is in any area
+      const isInArea = await storage.isParcelInAnyArea(parcelId);
+      
+      if (!isInArea) {
+        return res.status(403).json({ message: "This parcel is not currently included in any survey area. Please contact the area coordinator if you believe this is an error." });
+      }
+
+      const parcel = await storage.getParcelById(parcelId);
+      res.json({ success: true, parcel });
     } catch (error) {
       console.error("Parcel verification error:", error);
       res.status(500).json({ message: "Verification failed" });

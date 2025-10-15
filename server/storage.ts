@@ -35,6 +35,7 @@ export interface IStorage {
   removeParcelFromArea(areaId: string, parcelId: string): Promise<void>;
   getParcelsInArea(areaId: string): Promise<string[]>;
   isParcelInArea(areaId: string, parcelId: string): Promise<boolean>;
+  isParcelInAnyArea(parcelId: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -282,6 +283,16 @@ export class MemStorage implements IStorage {
     const values = Array.from(this.areaParcels.values());
     for (const areaParcel of values) {
       if (areaParcel.areaId === areaId && areaParcel.parcelId === parcelId) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  async isParcelInAnyArea(parcelId: string): Promise<boolean> {
+    const values = Array.from(this.areaParcels.values());
+    for (const areaParcel of values) {
+      if (areaParcel.parcelId === parcelId) {
         return true;
       }
     }
