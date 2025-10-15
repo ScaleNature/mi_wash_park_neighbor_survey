@@ -10,7 +10,8 @@ interface CodePhraseEntryProps {
 }
 
 export default function CodePhraseEntry({ onValidCode }: CodePhraseEntryProps) {
-  const [codePhrase, setCodePhrase] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isChecking, setIsChecking] = useState(false);
 
@@ -20,10 +21,10 @@ export default function CodePhraseEntry({ onValidCode }: CodePhraseEntryProps) {
     setIsChecking(true);
 
     setTimeout(() => {
-      if (codePhrase.toLowerCase().includes("oak")) {
+      if (password.toLowerCase().includes("oak")) {
         onValidCode("parcel-123");
       } else {
-        setError("Invalid code phrase. Please check and try again.");
+        setError("Invalid credentials. Please check and try again.");
       }
       setIsChecking(false);
     }, 500);
@@ -35,23 +36,35 @@ export default function CodePhraseEntry({ onValidCode }: CodePhraseEntryProps) {
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
           <Leaf className="h-6 w-6 text-primary" />
         </div>
-        <CardTitle>Enter Your Code Phrase</CardTitle>
+        <CardTitle>Access Survey</CardTitle>
         <CardDescription>
-          Enter the unique nature-themed code phrase you received to access the survey for your property.
+          Enter your street address and nature phrase to access the survey for your property.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="code-phrase">Code Phrase</Label>
+            <Label htmlFor="username">Street Address</Label>
             <Input
-              id="code-phrase"
+              id="username"
               type="text"
-              value={codePhrase}
-              onChange={(e) => setCodePhrase(e.target.value)}
-              placeholder="e.g., Woodland Trillium Bloom"
-              className="mt-2 font-mono"
-              data-testid="input-code-phrase"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="e.g., 123 Oak Street"
+              className="mt-2"
+              data-testid="input-username"
+            />
+          </div>
+          <div>
+            <Label htmlFor="password">Nature Phrase</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your unique nature phrase"
+              className="mt-2"
+              data-testid="input-password"
             />
             {error && (
               <div className="mt-2 flex items-center gap-2 text-sm text-destructive">
@@ -63,15 +76,15 @@ export default function CodePhraseEntry({ onValidCode }: CodePhraseEntryProps) {
           <Button
             type="submit"
             className="w-full"
-            disabled={!codePhrase || isChecking}
-            data-testid="button-verify-code"
+            disabled={!username || !password || isChecking}
+            data-testid="button-sign-in"
           >
             {isChecking ? (
               "Verifying..."
             ) : (
               <>
                 <CheckCircle2 className="mr-2 h-4 w-4" />
-                Verify Code
+                Sign In
               </>
             )}
           </Button>
