@@ -1,43 +1,23 @@
 import ParcelMap, { Parcel } from "@/components/ParcelMap";
 import { useQuery } from "@tanstack/react-query";
+import { LatLngExpression } from 'leaflet';
 
-const mockParcels: Parcel[] = [
-  {
-    id: '1',
-    coordinates: [[[42.2815, -83.7435], [42.2815, -83.7425], [42.2810, -83.7425], [42.2810, -83.7435]]],
-    address: '123 Oak Street',
-    status: 'forest-green',
-    hasCompost: true,
-  },
-  {
-    id: '2',
-    coordinates: [[[42.2810, -83.7435], [42.2810, -83.7425], [42.2805, -83.7425], [42.2805, -83.7435]]],
-    address: '125 Oak Street',
-    status: 'light-green',
-    hasCompost: false,
-  },
-  {
-    id: '3',
-    coordinates: [[[42.2805, -83.7435], [42.2805, -83.7425], [42.2800, -83.7425], [42.2800, -83.7435]]],
-    address: '127 Oak Street',
-    status: 'none',
-    hasCompost: false,
-  },
-  {
-    id: '4',
-    coordinates: [[[42.2815, -83.7445], [42.2815, -83.7435], [42.2810, -83.7435], [42.2810, -83.7445]]],
-    address: '124 Oak Street',
-    status: 'forest-green',
-    hasCompost: false,
-  },
-  {
-    id: '5',
-    coordinates: [[[42.2810, -83.7445], [42.2810, -83.7435], [42.2805, -83.7435], [42.2805, -83.7445]]],
-    address: '126 Oak Street',
-    status: 'light-green',
-    hasCompost: true,
-  },
-];
+type ParcelStatus = 'none' | 'light-green' | 'forest-green';
+
+interface ParcelData {
+  id: string;
+  coordinates: number[][][];
+  address?: string | null;
+  q1Response?: boolean | null;
+  q2Response?: boolean | null;
+  q3Response?: boolean | null;
+}
+
+function calculateStatus(q1?: boolean | null, q2?: boolean | null): ParcelStatus {
+  if (!q1) return 'none';
+  if (q1 && !q2) return 'light-green';
+  return 'forest-green';
+}
 
 export default function MapPage() {
   const { data: settings } = useQuery<{
@@ -48,15 +28,35 @@ export default function MapPage() {
     queryKey: ["/api/settings"],
   });
 
+  const { data: parcelsData, isLoading } = useQuery<ParcelData[]>({
+    queryKey: ["/api/parcels"],
+  });
+
   const center: [number, number] = [
     settings?.centerLat ?? 42.2808,
     settings?.centerLng ?? -83.7430
   ];
   const zoom = settings?.defaultZoom ?? 16;
 
+  const parcels: Parcel[] = parcelsData?.map(p => ({
+    id: p.id,
+    coordinates: p.coordinates as LatLngExpression[][],
+    address: p.address || undefined,
+    status: calculateStatus(p.q1Response, p.q2Response),
+    hasCompost: p.q3Response || false,
+  })) || [];
+
+  if (isLoading) {
+    return (
+      <div className="h-[calc(100vh-4rem)] flex items-center justify-center">
+        <p className="text-muted-foreground">Loading map...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="h-[calc(100vh-4rem)]">
-      <ParcelMap parcels={mockParcels} center={center} zoom={zoom} />
+      <ParcelMap parcels={parcels} center={center} zoom={zoom} />
     </div>
   );
 }

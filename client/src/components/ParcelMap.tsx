@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 export interface Parcel {
   id: string;
   coordinates: LatLngExpression[][];
-  address: string;
+  address?: string;
   status: 'none' | 'light-green' | 'forest-green';
   hasCompost: boolean;
 }
@@ -143,7 +143,7 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
           >
             <Popup>
               <div className="p-2" data-testid={`popup-parcel-${parcel.id}`}>
-                <p className="font-semibold">{parcel.address}</p>
+                <p className="font-semibold">{parcel.address || `Parcel ${parcel.id}`}</p>
                 <p className="text-sm text-muted-foreground">
                   Status: {parcel.status === 'none' ? 'No response' : parcel.status === 'light-green' ? 'Q1 Support' : 'Full Support'}
                 </p>
