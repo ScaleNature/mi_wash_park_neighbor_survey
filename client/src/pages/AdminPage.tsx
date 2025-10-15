@@ -4,48 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Save, LogOut } from "lucide-react";
+import { Search, Save, LogOut, Download } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-
-const mockParcels: ParcelAdmin[] = [
-  {
-    id: 'P-001',
-    address: '123 Oak Street',
-    codePhrase: 'Woodland Trillium Bloom',
-    status: 'forest-green',
-    responseDate: '2024-03-15',
-  },
-  {
-    id: 'P-002',
-    address: '125 Oak Street',
-    codePhrase: 'Prairie Blazing Star',
-    status: 'light-green',
-    responseDate: '2024-03-14',
-  },
-  {
-    id: 'P-003',
-    address: '127 Oak Street',
-    codePhrase: 'Savanna White Oak',
-    status: 'none',
-  },
-  {
-    id: 'P-004',
-    address: '124 Oak Street',
-    codePhrase: 'Wetland Cattail Stand',
-    status: 'forest-green',
-    responseDate: '2024-03-16',
-  },
-  {
-    id: 'P-005',
-    address: '126 Oak Street',
-    codePhrase: 'Mesic Forest Fern',
-    status: 'light-green',
-    responseDate: '2024-03-13',
-  },
-];
 
 export default function AdminPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -79,6 +42,12 @@ export default function AdminPage() {
     boundingBoxBottomRight?: string;
   }>({
     queryKey: ["/api/settings"],
+    enabled: !!session?.isAdmin,
+  });
+
+  // Get parcels
+  const { data: parcels = [] } = useQuery<ParcelAdmin[]>({
+    queryKey: ["/api/parcels"],
     enabled: !!session?.isAdmin,
   });
 
@@ -132,7 +101,7 @@ export default function AdminPage() {
     },
   });
 
-  const filteredParcels = mockParcels.filter(
+  const filteredParcels = parcels.filter(
     (parcel) =>
       parcel.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
       parcel.codePhrase.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -156,7 +125,8 @@ export default function AdminPage() {
 
     // Include area-specific fields based on mode
     if (areaMode === 'center') {
-      settingsData.radiusMeters = radiusMeters ? parseFloat(radiusMeters) : null;
+      const radiusValue = radiusMeters ? parseFloat(radiusMeters) : null;
+      settingsData.radiusMeters = radiusValue && !isNaN(radiusValue) ? radiusValue : null;
       settingsData.boundingBoxTopLeft = null;
       settingsData.boundingBoxBottomRight = null;
     } else {
@@ -171,6 +141,30 @@ export default function AdminPage() {
   const handleLogout = () => {
     logoutMutation.mutate();
   };
+
+  // Load parcels mutation
+  const loadParcelsMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/admin/load-parcels");
+    },
+    onSuccess: (data: any) => {
+      const count = data?.count ?? 0;
+      toast({
+        title: count > 0 ? "Parcels loaded successfully" : "No parcels found",
+        description: count > 0 
+          ? `Loaded ${count} parcels from Washtenaw County GIS`
+          : "No parcels found in the specified area. Try adjusting the area settings.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/parcels"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to load parcels",
+        description: error.message,
+      });
+    },
+  });
 
   if (sessionLoading) {
     return (
@@ -369,6 +363,20 @@ export default function AdminPage() {
             <CardDescription>Search and view parcel information</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="flex gap-3 items-center">
+              <Button
+                onClick={() => loadParcelsMutation.mutate()}
+                disabled={loadParcelsMutation.isPending || !settings}
+                variant="default"
+                data-testid="button-load-parcels"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                {loadParcelsMutation.isPending ? "Loading..." : "Load Parcels from GIS"}
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Fetch parcels from Washtenaw County based on area settings
+              </p>
+            </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input

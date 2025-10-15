@@ -115,6 +115,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get parcels (protected)
+  app.get("/api/parcels", isAdmin, async (req, res) => {
+    try {
+      const parcels = await storage.getAllParcels();
+      res.json(parcels);
+    } catch (error) {
+      console.error("Error fetching parcels:", error);
+      res.status(500).json({ message: "Failed to fetch parcels" });
+    }
+  });
+
+  // Load parcels from ArcGIS (protected)
+  app.post("/api/admin/load-parcels", isAdmin, async (req, res) => {
+    try {
+      const settings = await storage.getAppSettings();
+      if (!settings) {
+        return res.status(400).json({ message: "Settings not configured" });
+      }
+
+      const { areaMode, centerLat, centerLng, radiusMeters, boundingBoxTopLeft, boundingBoxBottomRight } = settings;
+      console.log("Area settings:", { areaMode, centerLat, centerLng, radiusMeters, boundingBoxTopLeft, boundingBoxBottomRight });
+
+      // Construct ArcGIS query URL
+      // Note: This endpoint may need to be updated with the correct Washtenaw County ArcGIS REST API URL
+      // The WMS service works, but the REST API endpoint structure may be different
+      const baseUrl = "https://services3.arcgis.com/mRwarx73j5FhfOkR/ArcGIS/rest/services/Parcels/MapServer/0/query";
+      const params = new URLSearchParams({
+        f: "json",
+        outFields: "*",
+        returnGeometry: "true",
+        spatialRel: "esriSpatialRelIntersects",
+        outSR: "4326",  // Ensure output is in WGS84
+      });
+
+      // Add spatial filter based on area mode
+      if (areaMode === 'center') {
+        if (!radiusMeters || radiusMeters <= 0) {
+          return res.status(400).json({ message: "Radius must be set and greater than 0 for center mode" });
+        }
+        // Query by center point and radius
+        const geometry = JSON.stringify({
+          x: centerLng,
+          y: centerLat,
+          spatialReference: { wkid: 4326 }
+        });
+        params.append("geometry", geometry);
+        params.append("geometryType", "esriGeometryPoint");
+        params.append("distance", radiusMeters.toString());
+        params.append("units", "esriSRUnit_Meter");
+      } else if (areaMode === 'bbox') {
+        if (!boundingBoxTopLeft || !boundingBoxBottomRight) {
+          return res.status(400).json({ message: "Bounding box corners must be set for bbox mode" });
+        }
+        // Query by bounding box
+        const [topLat, leftLng] = boundingBoxTopLeft.split(',').map(s => parseFloat(s.trim()));
+        const [bottomLat, rightLng] = boundingBoxBottomRight.split(',').map(s => parseFloat(s.trim()));
+        
+        const geometry = JSON.stringify({
+          xmin: leftLng,
+          ymin: bottomLat,
+          xmax: rightLng,
+          ymax: topLat,
+          spatialReference: { wkid: 4326 }
+        });
+        params.append("geometry", geometry);
+        params.append("geometryType", "esriGeometryEnvelope");
+      } else {
+        return res.status(400).json({ message: `Invalid area mode: ${areaMode}. Must be 'center' or 'bbox'` });
+      }
+
+      // Fetch parcels from ArcGIS
+      const queryUrl = `${baseUrl}?${params}`;
+      console.log("ArcGIS Query URL:", queryUrl);
+      
+      const response = await fetch(queryUrl);
+      const data = await response.json();
+      
+      console.log("ArcGIS Response:", JSON.stringify(data).substring(0, 500));
+
+      if (data.error) {
+        console.error("ArcGIS Error:", data.error);
+        return res.status(500).json({ message: `ArcGIS Error: ${data.error.message || 'Unknown error'}` });
+      }
+
+      if (!data.features || data.features.length === 0) {
+        console.log("No parcels found in area");
+        return res.json({ count: 0, message: "No parcels found in the specified area" });
+      }
+
+      // Process and save parcels
+      const count = await storage.loadParcelsFromGIS(data.features);
+
+      res.json({ count, message: `Successfully loaded ${count} parcels` });
+    } catch (error: any) {
+      console.error("Error loading parcels:", error);
+      res.status(500).json({ message: error.message || "Failed to load parcels" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

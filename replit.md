@@ -6,6 +6,20 @@ The Molin Nature Area Neighborhood Support application is a civic engagement pla
 
 The platform features an interactive map displaying property parcels with color-coded status indicators, an educational resource section about invasive species, and a secure admin panel for managing parcel data and survey responses. Access to the survey is controlled through unique nature-themed code phrases assigned to each property parcel.
 
+## Recent Changes
+
+### October 15, 2025
+- **Admin Settings Redesign**: Replaced 4 separate bounding box fields with cleaner UI:
+  - Mode selector: "Center + Radius" OR "Bounding Box"
+  - Center mode: Shows radius input in meters
+  - Bounding box mode: Shows two CSV input fields (top-left, bottom-right)
+- **WMS Parcel Overlay**: Added toggleable Washtenaw County GIS parcel boundaries on map
+- **Click-to-Copy Coordinates**: Map click copies lat/lng to clipboard for area definition
+- **Parcel Loading Infrastructure**: Complete backend/frontend for loading parcels from ArcGIS
+  - Nature-themed password generation (e.g., "Ancient Oak Grove", "Luminous Maple Path")
+  - Admin UI with "Load Parcels from GIS" button
+  - **PENDING**: ArcGIS REST API endpoint configuration (current endpoint returns "Invalid URL")
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -70,8 +84,10 @@ Preferred communication style: Simple, everyday language.
 **Database**: PostgreSQL via Neon serverless driver (@neondatabase/serverless v0.10.4) - configured but currently using in-memory storage implementation
 
 **Mapping Services**: 
-- Leaflet v1.9.4 for map rendering
+- Leaflet v1.9.4 for map rendering with React-Leaflet
 - OpenStreetMap tiles via unpkg.com CDN
+- Washtenaw County GIS WMS parcel overlay (services3.arcgis.com/mRwarx73j5FhfOkR) with toggle control
+- Click-to-copy lat/lng coordinates feature for area definition
 
 **UI Framework**: 
 - Radix UI component primitives (v1.x - accordion, dialog, dropdown, etc.)

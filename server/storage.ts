@@ -1,8 +1,13 @@
-import { type User, type InsertUser, type AppSettings, type UpdateAppSettings } from "@shared/schema";
+import { type User, type InsertUser, type AppSettings, type UpdateAppSettings, type Parcel, type InsertParcel } from "@shared/schema";
 import { randomUUID } from "crypto";
 import bcrypt from "bcrypt";
 
 const SALT_ROUNDS = 10;
+
+// Nature-themed word lists for generating code phrases
+const natureAdjectives = ["Ancient", "Blooming", "Cascading", "Dancing", "Emerald", "Flowering", "Golden", "Hidden", "Ivory", "Jubilant", "Kindred", "Luminous", "Mystic", "Noble", "Peaceful", "Quiet", "Radiant", "Sacred", "Tranquil", "Verdant", "Whispering", "Pristine", "Vibrant", "Majestic"];
+const natureNouns = ["Aspen", "Birch", "Cedar", "Daisy", "Elm", "Fern", "Grove", "Hickory", "Iris", "Juniper", "Lily", "Maple", "Nectar", "Oak", "Pine", "Rose", "Sage", "Thicket", "Violet", "Willow", "Yarrow", "Meadow", "Brook", "Haven"];
+const natureElements = ["Bloom", "Breeze", "Creek", "Dawn", "Echo", "Field", "Glen", "Hill", "Knoll", "Leaf", "Mist", "Path", "Ridge", "Spring", "Trail", "Vale", "Woods", "Glade", "Pond", "Stream", "Forest", "Garden", "Canopy", "Dell"];
 
 // modify the interface with any CRUD methods
 // you might need
@@ -15,14 +20,19 @@ export interface IStorage {
   getAppSettings(): Promise<AppSettings | undefined>;
   updateAppSettings(settings: UpdateAppSettings): Promise<AppSettings>;
   verifyAdminCredentials(email: string, password: string): Promise<boolean>;
+  
+  getAllParcels(): Promise<Parcel[]>;
+  loadParcelsFromGIS(features: any[]): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private appSettings: AppSettings;
+  private parcels: Map<string, Parcel>;
 
   constructor() {
     this.users = new Map();
+    this.parcels = new Map();
     // Hash the default password synchronously to avoid race conditions
     const hashedPassword = bcrypt.hashSync("password", SALT_ROUNDS);
     this.appSettings = {
@@ -39,6 +49,13 @@ export class MemStorage implements IStorage {
       boundingBoxBottomRight: null,
       updatedAt: new Date(),
     };
+  }
+
+  private generateNaturePhrase(): string {
+    const adj = natureAdjectives[Math.floor(Math.random() * natureAdjectives.length)];
+    const noun = natureNouns[Math.floor(Math.random() * natureNouns.length)];
+    const elem = natureElements[Math.floor(Math.random() * natureElements.length)];
+    return `${adj} ${noun} ${elem}`;
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -84,6 +101,52 @@ export class MemStorage implements IStorage {
     const emailMatches = this.appSettings.adminEmail === email;
     const passwordMatches = await bcrypt.compare(password, this.appSettings.adminPassword);
     return emailMatches && passwordMatches;
+  }
+
+  async getAllParcels(): Promise<Parcel[]> {
+    return Array.from(this.parcels.values());
+  }
+
+  async loadParcelsFromGIS(features: any[]): Promise<number> {
+    let count = 0;
+    
+    for (const feature of features) {
+      const attributes = feature.attributes;
+      const geometry = feature.geometry;
+      
+      // Try to extract address from various possible field names
+      const address = attributes.SITEADDRESS || 
+                     attributes.ADDRESS || 
+                     attributes.FULLADDR || 
+                     attributes.ADDR ||
+                     attributes.FullAddress ||
+                     "Unknown Address";
+      
+      // Use parcel ID from GIS data
+      const parcelId = attributes.OBJECTID?.toString() || 
+                      attributes.PARCELID?.toString() || 
+                      attributes.PIN?.toString() || 
+                      randomUUID();
+      
+      // Generate unique nature phrase for this parcel
+      const codePhrase = this.generateNaturePhrase();
+      
+      const parcel: Parcel = {
+        id: parcelId,
+        address,
+        codePhrase,
+        geometry,
+        status: "none",
+        hasCompost: false,
+        responseDate: null,
+        createdAt: new Date(),
+      };
+      
+      this.parcels.set(parcelId, parcel);
+      count++;
+    }
+    
+    return count;
   }
 }
 
