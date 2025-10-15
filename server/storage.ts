@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type AppSettings, type UpdateAppSettings, type Parcel, type InsertParcel, type UpdateParcel } from "@shared/schema";
+import { type User, type InsertUser, type AppSettings, type UpdateAppSettings, type Parcel, type InsertParcel, type UpdateParcel, type Area, type InsertArea, type AreaParcel, type InsertAreaParcel } from "@shared/schema";
 import { randomUUID } from "crypto";
 import bcrypt from "bcrypt";
 
@@ -27,16 +27,28 @@ export interface IStorage {
   regenerateNaturePhrase(id: string): Promise<string | undefined>;
   verifyParcelCredentials(parcelId: string, codePhrase: string): Promise<boolean>;
   loadParcelsFromGeoJSON(features: any[]): Promise<number>;
+  
+  getAllAreas(): Promise<Area[]>;
+  getAreaById(id: string): Promise<Area | undefined>;
+  createArea(area: InsertArea): Promise<Area>;
+  addParcelToArea(areaId: string, parcelId: string): Promise<void>;
+  removeParcelFromArea(areaId: string, parcelId: string): Promise<void>;
+  getParcelsInArea(areaId: string): Promise<string[]>;
+  isParcelInArea(areaId: string, parcelId: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private appSettings: AppSettings;
   private parcels: Map<string, Parcel>;
+  private areas: Map<string, Area>;
+  private areaParcels: Map<string, AreaParcel>;
 
   constructor() {
     this.users = new Map();
     this.parcels = new Map();
+    this.areas = new Map();
+    this.areaParcels = new Map();
     // Hash the default password synchronously to avoid race conditions
     const hashedPassword = bcrypt.hashSync("password", SALT_ROUNDS);
     this.appSettings = {
@@ -190,6 +202,90 @@ export class MemStorage implements IStorage {
     }
     
     return count;
+  }
+
+  async getAllAreas(): Promise<Area[]> {
+    return Array.from(this.areas.values());
+  }
+
+  async getAreaById(id: string): Promise<Area | undefined> {
+    return this.areas.get(id);
+  }
+
+  async createArea(insertArea: InsertArea): Promise<Area> {
+    const id = randomUUID();
+    const area: Area = {
+      id,
+      name: insertArea.name,
+      centerLat: insertArea.centerLat,
+      centerLng: insertArea.centerLng,
+      selectionRadiusMeters: insertArea.selectionRadiusMeters ?? 200,
+      displayRadiusMeters: insertArea.displayRadiusMeters ?? 1000,
+      createdAt: new Date(),
+    };
+    this.areas.set(id, area);
+    return area;
+  }
+
+  async addParcelToArea(areaId: string, parcelId: string): Promise<void> {
+    // Validate area exists
+    const area = this.areas.get(areaId);
+    if (!area) {
+      throw new Error(`Area with id ${areaId} does not exist`);
+    }
+    
+    // Validate parcel exists
+    const parcel = this.parcels.get(parcelId);
+    if (!parcel) {
+      throw new Error(`Parcel with id ${parcelId} does not exist`);
+    }
+    
+    // Check if already exists to prevent duplicates
+    const values = Array.from(this.areaParcels.values());
+    const exists = values.some(ap => ap.areaId === areaId && ap.parcelId === parcelId);
+    if (exists) {
+      return; // Already exists, no need to add again
+    }
+    
+    const id = randomUUID();
+    const areaParcel: AreaParcel = {
+      id,
+      areaId,
+      parcelId,
+      createdAt: new Date(),
+    };
+    this.areaParcels.set(id, areaParcel);
+  }
+
+  async removeParcelFromArea(areaId: string, parcelId: string): Promise<void> {
+    const entries = Array.from(this.areaParcels.entries());
+    for (const [id, areaParcel] of entries) {
+      if (areaParcel.areaId === areaId && areaParcel.parcelId === parcelId) {
+        this.areaParcels.delete(id);
+        break;
+      }
+    }
+  }
+
+  async getParcelsInArea(areaId: string): Promise<string[]> {
+    const parcelIds: string[] = [];
+    const values = Array.from(this.areaParcels.values());
+    for (const areaParcel of values) {
+      if (areaParcel.areaId === areaId) {
+        parcelIds.push(areaParcel.parcelId);
+      }
+    }
+    return parcelIds;
+  }
+
+  async isParcelInArea(areaId: string, parcelId: string): Promise<boolean> {
+    const values = Array.from(this.areaParcels.values());
+    for (const areaParcel of values) {
+      if (areaParcel.areaId === areaId && areaParcel.parcelId === parcelId) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 

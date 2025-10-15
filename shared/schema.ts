@@ -70,3 +70,36 @@ export const updateParcelSchema = createInsertSchema(parcels).omit({
 export type InsertParcel = z.infer<typeof insertParcelSchema>;
 export type UpdateParcel = z.infer<typeof updateParcelSchema>;
 export type Parcel = typeof parcels.$inferSelect;
+
+export const areas = pgTable("areas", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  centerLat: real("center_lat").notNull(),
+  centerLng: real("center_lng").notNull(),
+  selectionRadiusMeters: real("selection_radius_meters").notNull().default(200),
+  displayRadiusMeters: real("display_radius_meters").notNull().default(1000),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertAreaSchema = createInsertSchema(areas).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertArea = z.infer<typeof insertAreaSchema>;
+export type Area = typeof areas.$inferSelect;
+
+export const areaParcels = pgTable("area_parcels", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  areaId: varchar("area_id").notNull().references(() => areas.id, { onDelete: "cascade" }),
+  parcelId: varchar("parcel_id").notNull().references(() => parcels.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertAreaParcelSchema = createInsertSchema(areaParcels).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertAreaParcel = z.infer<typeof insertAreaParcelSchema>;
+export type AreaParcel = typeof areaParcels.$inferSelect;
