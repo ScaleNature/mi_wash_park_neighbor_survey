@@ -6,7 +6,10 @@ type ParcelStatus = 'none' | 'light-green' | 'forest-green';
 
 interface ParcelData {
   id: string;
-  coordinates: number[][][];
+  geometry: {
+    type: string;
+    coordinates: number[][][];
+  };
   address?: string | null;
   q1Response?: boolean | null;
   q2Response?: boolean | null;
@@ -40,7 +43,7 @@ export default function MapPage() {
 
   const parcels: Parcel[] = parcelsData?.map(p => ({
     id: p.id,
-    coordinates: p.coordinates as LatLngExpression[][],
+    coordinates: p.geometry.coordinates as LatLngExpression[][],
     address: p.address || undefined,
     status: calculateStatus(p.q1Response, p.q2Response),
     hasCompost: p.q3Response || false,
