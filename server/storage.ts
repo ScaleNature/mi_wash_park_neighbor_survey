@@ -24,7 +24,7 @@ export class MemStorage implements IStorage {
   constructor() {
     this.users = new Map();
     // Hash the default password synchronously to avoid race conditions
-    const hashedPassword = bcrypt.hashSync("admin123", SALT_ROUNDS);
+    const hashedPassword = bcrypt.hashSync("password", SALT_ROUNDS);
     this.appSettings = {
       id: randomUUID(),
       appName: "Molin Nature Area Neighborhood Support",
