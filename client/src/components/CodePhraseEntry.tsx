@@ -36,9 +36,9 @@ export default function CodePhraseEntry({ onValidCode }: CodePhraseEntryProps) {
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
           <Leaf className="h-6 w-6 text-primary" />
         </div>
-        <CardTitle>Access Survey</CardTitle>
+        <CardTitle>Sign In</CardTitle>
         <CardDescription>
-          Enter your street address and nature phrase to access the survey for your property.
+          Enter your street address and nature phrase to participate.
         </CardDescription>
       </CardHeader>
       <CardContent>

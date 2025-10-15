@@ -27,7 +27,7 @@ export default function SurveyPage() {
             </div>
             <CardTitle>Thank You!</CardTitle>
             <CardDescription>
-              Your survey response has been recorded. We appreciate your participation in supporting the health of Molin Nature Area.
+              Your response has been recorded. We appreciate your participation in supporting the health of Molin Nature Area.
             </CardDescription>
           </CardHeader>
         </Card>
@@ -47,7 +47,7 @@ export default function SurveyPage() {
     <div className="min-h-[calc(100vh-4rem)] p-6 bg-muted/30">
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-serif font-bold mb-2">Neighborhood Support Survey</h1>
+          <h1 className="text-3xl font-serif font-bold mb-2">Neighborhood Support</h1>
           <p className="text-muted-foreground">
             Thank you for participating. Your responses help Park Stewards coordinate invasive species removal efforts.
           </p>

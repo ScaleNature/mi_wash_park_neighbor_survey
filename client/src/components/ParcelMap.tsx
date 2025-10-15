@@ -1,7 +1,10 @@
-import { MapContainer, TileLayer, Polygon, Popup } from 'react-leaflet';
-import { LatLngExpression } from 'leaflet';
+import { useRef } from 'react';
+import { MapContainer, TileLayer, Polygon, Popup, Marker, useMap } from 'react-leaflet';
+import { LatLngExpression, Map as LeafletMap, Icon, divIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Trash2 } from 'lucide-react';
+import { Trash2, RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { renderToStaticMarkup } from 'react-dom/server';
 
 export interface Parcel {
   id: string;
@@ -17,7 +20,32 @@ interface ParcelMapProps {
   zoom?: number;
 }
 
+function ResetViewButton({ center, zoom }: { center: LatLngExpression; zoom: number }) {
+  const map = useMap();
+  
+  const handleReset = () => {
+    map.setView(center, zoom);
+  };
+
+  return (
+    <div className="absolute top-4 left-4 z-[1000]">
+      <Button
+        onClick={handleReset}
+        variant="secondary"
+        size="sm"
+        className="shadow-md"
+        data-testid="button-reset-view"
+      >
+        <RotateCcw className="h-4 w-4 mr-2" />
+        Reset View
+      </Button>
+    </div>
+  );
+}
+
 export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom = 16 }: ParcelMapProps) {
+  const mapRef = useRef<LeafletMap>(null);
+
   const getParcelColor = (status: string) => {
     switch (status) {
       case 'light-green':
@@ -29,14 +57,37 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
     }
   };
 
+  const getParcelCenter = (coordinates: LatLngExpression[][]): LatLngExpression => {
+    const coords = coordinates[0] as [number, number][];
+    const lats = coords.map(c => c[0]);
+    const lngs = coords.map(c => c[1]);
+    return [
+      (Math.min(...lats) + Math.max(...lats)) / 2,
+      (Math.min(...lngs) + Math.max(...lngs)) / 2
+    ];
+  };
+
+  const compostIcon = divIcon({
+    html: renderToStaticMarkup(
+      <div className="flex items-center justify-center w-8 h-8 bg-primary rounded-full shadow-md">
+        <Trash2 className="h-4 w-4 text-primary-foreground" />
+      </div>
+    ),
+    className: 'compost-marker',
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+  });
+
   return (
     <div className="relative w-full h-full" data-testid="map-container">
       <MapContainer
+        ref={mapRef}
         center={center}
         zoom={zoom}
         style={{ height: '100%', width: '100%' }}
         className="z-0"
       >
+        <ResetViewButton center={center} zoom={zoom} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -67,6 +118,13 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
               </div>
             </Popup>
           </Polygon>
+        ))}
+        {parcels.filter(p => p.hasCompost).map((parcel) => (
+          <Marker
+            key={`compost-${parcel.id}`}
+            position={getParcelCenter(parcel.coordinates)}
+            icon={compostIcon}
+          />
         ))}
       </MapContainer>
 
