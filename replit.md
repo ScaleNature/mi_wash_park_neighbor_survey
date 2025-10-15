@@ -11,7 +11,7 @@ The platform features an interactive map displaying property parcels with color-
 ### October 15, 2025 (Current Session - Areas System)
 - **Areas Architecture Implementation**: Redesigned to support multiple nature areas with center-point based parcel selection
   - Created Areas table and AreaParcels junction table for flexible area-parcel relationships
-  - Molin Nature Area initialized at center point (42.247891, -83.715445)
+  - Molin Nature Area initialized at center point (42.280566, -83.743475) - corrected to match actual parcel locations
   - Auto-selects parcels within 200m selection radius using Haversine distance calculation
   - Admin map displays all parcels within 1km display radius with leaf markers (🍃) on selected parcels
   
