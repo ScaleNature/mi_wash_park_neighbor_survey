@@ -6,7 +6,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2 } from "lucide-react";
 
+import { Input } from "@/components/ui/input";
+
 export interface SurveyData {
+  address?: string;
   question1: 'yes' | 'no';
   question1Comment: string;
   question2: 'yes' | 'no';
@@ -18,20 +21,26 @@ export interface SurveyData {
 interface SurveyFormProps {
   onSubmit: (data: SurveyData) => void;
   isSubmitting?: boolean;
+  initialAddress?: string | null;
+  initialQ1?: boolean | null;
+  initialQ2?: boolean | null;
+  initialQ3?: boolean | null;
 }
 
-export default function SurveyForm({ onSubmit, isSubmitting = false }: SurveyFormProps) {
-  const [q1, setQ1] = useState<'yes' | 'no' | ''>('');
+export default function SurveyForm({ onSubmit, isSubmitting = false, initialAddress, initialQ1, initialQ2, initialQ3 }: SurveyFormProps) {
+  const [address, setAddress] = useState(initialAddress || '');
+  const [q1, setQ1] = useState<'yes' | 'no' | ''>(initialQ1 === true ? 'yes' : initialQ1 === false ? 'no' : '');
   const [q1Comment, setQ1Comment] = useState('');
-  const [q2, setQ2] = useState<'yes' | 'no' | ''>('');
+  const [q2, setQ2] = useState<'yes' | 'no' | ''>(initialQ2 === true ? 'yes' : initialQ2 === false ? 'no' : '');
   const [q2Comment, setQ2Comment] = useState('');
-  const [q3, setQ3] = useState<'yes' | 'no' | ''>('');
+  const [q3, setQ3] = useState<'yes' | 'no' | ''>(initialQ3 === true ? 'yes' : initialQ3 === false ? 'no' : '');
   const [q3Comment, setQ3Comment] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (q1 && q2 && q3) {
       onSubmit({
+        address: address || undefined,
         question1: q1,
         question1Comment: q1Comment,
         question2: q2,
@@ -46,6 +55,29 @@ export default function SurveyForm({ onSubmit, isSubmitting = false }: SurveyFor
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Property Information (Optional)</CardTitle>
+          <CardDescription>
+            Please provide your street address to help us coordinate with your property.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div>
+            <Label htmlFor="address">Street Address</Label>
+            <Input
+              id="address"
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="e.g., 123 Oak Street"
+              className="mt-2"
+              data-testid="input-address"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <div className="flex items-start gap-3">

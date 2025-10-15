@@ -3,18 +3,47 @@ import CodePhraseEntry from "@/components/CodePhraseEntry";
 import SurveyForm, { SurveyData } from "@/components/SurveyForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SurveyPage() {
   const [parcelId, setParcelId] = useState<string | null>(null);
+  const [parcelData, setParcelData] = useState<any>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
-  const handleValidCode = (id: string) => {
+  const handleValidCode = (id: string, parcel: any) => {
     setParcelId(id);
+    setParcelData(parcel);
   };
 
-  const handleSubmit = (data: SurveyData) => {
-    console.log('Survey submitted for parcel:', parcelId, data);
-    setSubmitted(true);
+  const handleSubmit = async (data: SurveyData) => {
+    if (!parcelId) return;
+    
+    setIsSubmitting(true);
+    try {
+      await apiRequest("POST", `/api/parcels/${parcelId}/survey`, {
+        address: data.address,
+        q1Response: data.question1 === 'yes',
+        q2Response: data.question2 === 'yes',
+        q3Response: data.question3 === 'yes',
+      });
+      
+      setSubmitted(true);
+      toast({
+        title: "Survey submitted",
+        description: "Thank you for your participation!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Submission failed",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -52,7 +81,14 @@ export default function SurveyPage() {
             Thank you for participating. Your responses help Park Stewards coordinate invasive species removal efforts.
           </p>
         </div>
-        <SurveyForm onSubmit={handleSubmit} />
+        <SurveyForm 
+          onSubmit={handleSubmit} 
+          isSubmitting={isSubmitting}
+          initialAddress={parcelData?.address}
+          initialQ1={parcelData?.q1Response}
+          initialQ2={parcelData?.q2Response}
+          initialQ3={parcelData?.q3Response}
+        />
       </div>
     </div>
   );

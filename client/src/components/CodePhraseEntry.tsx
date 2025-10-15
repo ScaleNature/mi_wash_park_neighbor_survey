@@ -4,14 +4,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Leaf, CheckCircle2, XCircle } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 interface CodePhraseEntryProps {
-  onValidCode: (parcelId: string) => void;
+  onValidCode: (parcelId: string, parcelData: any) => void;
 }
 
 export default function CodePhraseEntry({ onValidCode }: CodePhraseEntryProps) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [parcelId, setParcelId] = useState("");
+  const [codePhrase, setCodePhrase] = useState("");
   const [error, setError] = useState("");
   const [isChecking, setIsChecking] = useState(false);
 
@@ -20,14 +21,22 @@ export default function CodePhraseEntry({ onValidCode }: CodePhraseEntryProps) {
     setError("");
     setIsChecking(true);
 
-    setTimeout(() => {
-      if (password.toLowerCase().includes("oak")) {
-        onValidCode("parcel-123");
+    try {
+      const response: any = await apiRequest("POST", "/api/parcels/verify", {
+        parcelId,
+        codePhrase,
+      });
+      
+      if (response.success && response.parcel) {
+        onValidCode(response.parcel.id, response.parcel);
       } else {
-        setError("Invalid credentials. Please check and try again.");
+        setError("Invalid parcel ID or nature phrase. Please check and try again.");
       }
+    } catch (err: any) {
+      setError(err.message || "Verification failed. Please try again.");
+    } finally {
       setIsChecking(false);
-    }, 500);
+    }
   };
 
   return (
@@ -38,33 +47,33 @@ export default function CodePhraseEntry({ onValidCode }: CodePhraseEntryProps) {
         </div>
         <CardTitle>Sign In</CardTitle>
         <CardDescription>
-          Enter your street address and nature phrase to participate.
+          Enter your parcel ID and nature phrase to participate.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="username">Street Address</Label>
+            <Label htmlFor="parcel-id">Parcel ID</Label>
             <Input
-              id="username"
+              id="parcel-id"
               type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="e.g., 123 Oak Street"
+              value={parcelId}
+              onChange={(e) => setParcelId(e.target.value)}
+              placeholder="e.g., P42.284198_-83.740703"
               className="mt-2"
-              data-testid="input-username"
+              data-testid="input-parcel-id"
             />
           </div>
           <div>
-            <Label htmlFor="password">Nature Phrase</Label>
+            <Label htmlFor="code-phrase">Nature Phrase</Label>
             <Input
-              id="password"
+              id="code-phrase"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={codePhrase}
+              onChange={(e) => setCodePhrase(e.target.value)}
               placeholder="Enter your unique nature phrase"
               className="mt-2"
-              data-testid="input-password"
+              data-testid="input-code-phrase"
             />
             {error && (
               <div className="mt-2 flex items-center gap-2 text-sm text-destructive">
@@ -76,7 +85,7 @@ export default function CodePhraseEntry({ onValidCode }: CodePhraseEntryProps) {
           <Button
             type="submit"
             className="w-full"
-            disabled={!username || !password || isChecking}
+            disabled={!parcelId || !codePhrase || isChecking}
             data-testid="button-sign-in"
           >
             {isChecking ? (
