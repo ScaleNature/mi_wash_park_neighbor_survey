@@ -18,7 +18,9 @@ The platform features an interactive map displaying property parcels with color-
 - **Parcel Loading Infrastructure**: Complete backend/frontend for loading parcels from ArcGIS
   - Nature-themed password generation (e.g., "Ancient Oak Grove", "Luminous Maple Path")
   - Admin UI with "Load Parcels from GIS" button
-  - **PENDING**: ArcGIS REST API endpoint configuration (current endpoint returns "Invalid URL")
+  - **BLOCKER**: Washtenaw County ArcGIS REST API requires authentication token
+    - FeatureServer endpoint: `https://services1.arcgis.com/4ezfu5dIwH83BUNL/ArcGIS/rest/services/tax_parcels/FeatureServer/0/query` returns "Token Required" (code 499)
+    - Alternative solutions: obtain API token from Washtenaw County, use downloadable shapefile, or implement manual CSV parcel import
 
 ## User Preferences
 

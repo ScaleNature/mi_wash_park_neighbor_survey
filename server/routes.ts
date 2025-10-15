@@ -138,9 +138,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Area settings:", { areaMode, centerLat, centerLng, radiusMeters, boundingBoxTopLeft, boundingBoxBottomRight });
 
       // Construct ArcGIS query URL
-      // Note: This endpoint may need to be updated with the correct Washtenaw County ArcGIS REST API URL
-      // The WMS service works, but the REST API endpoint structure may be different
-      const baseUrl = "https://services3.arcgis.com/mRwarx73j5FhfOkR/ArcGIS/rest/services/Parcels/MapServer/0/query";
+      // NOTE: This endpoint requires authentication - Washtenaw County ArcGIS services are token-protected
+      // User will need to either:
+      //   1. Obtain an API token from Washtenaw County GIS
+      //   2. Use the downloadable parcel shapefile from https://data-washtenaw.opendata.arcgis.com/
+      //   3. Manually import parcels via CSV
+      const baseUrl = "https://services1.arcgis.com/4ezfu5dIwH83BUNL/ArcGIS/rest/services/tax_parcels/FeatureServer/0/query";
       const params = new URLSearchParams({
         f: "json",
         outFields: "*",
