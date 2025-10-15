@@ -8,19 +8,32 @@ The platform features an interactive map displaying property parcels with color-
 
 ## Recent Changes
 
-### October 15, 2025
-- **Admin Settings Redesign**: Replaced 4 separate bounding box fields with cleaner UI:
-  - Mode selector: "Center + Radius" OR "Bounding Box"
-  - Center mode: Shows radius input in meters
-  - Bounding box mode: Shows two CSV input fields (top-left, bottom-right)
+### October 15, 2025 (Latest Session)
+- **Complete Parcel System Integration**: Fully operational parcel-based survey system
+  - 1,096 parcels loaded from Molin area Shapefile with centroid-based IDs (format: "P42.284198_-83.740703")
+  - Survey login uses parcel_id as username with nature phrase authentication
+  - Optional address field added to survey form (users can add/update their addresses)
+  - Map displays all parcels with color-coded status (gray=none, light-green=Q1 support, forest-green=full support)
+  
+- **Admin Parcel Management Features**:
+  - Edit parcel addresses via dialog interface
+  - Regenerate nature phrases per parcel with spinner feedback
+  - Per-row action buttons in admin table
+  - Proper loading states and error handling
+
+- **Enhanced Map Interactions**:
+  - Parcel popups show ID, address (if available), survey status, and compost availability
+  - "Go to Survey" button in popups links directly to survey page
+  - Real parcel data replaces mock data
+
+### October 15, 2025 (Earlier Session)
+- **Admin Settings Redesign**: Replaced 4 separate bounding box fields with cleaner UI
 - **WMS Parcel Overlay**: Added toggleable Washtenaw County GIS parcel boundaries on map
 - **Click-to-Copy Coordinates**: Map click copies lat/lng to clipboard for area definition
-- **Parcel Loading Infrastructure**: Complete backend/frontend for loading parcels from ArcGIS
+- **Parcel Loading Infrastructure**: Backend/frontend for loading parcels from Shapefile
   - Nature-themed password generation (e.g., "Ancient Oak Grove", "Luminous Maple Path")
-  - Admin UI with "Load Parcels from GIS" button
-  - **BLOCKER**: Washtenaw County ArcGIS REST API requires authentication token
-    - FeatureServer endpoint: `https://services1.arcgis.com/4ezfu5dIwH83BUNL/ArcGIS/rest/services/tax_parcels/FeatureServer/0/query` returns "Token Required" (code 499)
-    - Alternative solutions: obtain API token from Washtenaw County, use downloadable shapefile, or implement manual CSV parcel import
+  - Successfully loaded 1,096 parcels from attached_assets/molin_area_parcels.geojson
+  - Used proj4 library with EPSG:2898 projection to convert State Plane coordinates to WGS84
 
 ## User Preferences
 
