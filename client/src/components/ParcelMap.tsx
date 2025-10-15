@@ -1,10 +1,11 @@
 import { useRef } from 'react';
-import { MapContainer, TileLayer, Polygon, Popup, Marker, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Polygon, Popup, Marker, useMap, useMapEvents } from 'react-leaflet';
 import { LatLngExpression, Map as LeafletMap, Icon, divIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Trash2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { useToast } from '@/hooks/use-toast';
 
 export interface Parcel {
   id: string;
@@ -41,6 +42,32 @@ function ResetViewButton({ center, zoom }: { center: LatLngExpression; zoom: num
       </Button>
     </div>
   );
+}
+
+function MapClickHandler() {
+  const { toast } = useToast();
+  
+  useMapEvents({
+    click: (e) => {
+      const { lat, lng } = e.latlng;
+      const coordsText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      
+      navigator.clipboard.writeText(coordsText).then(() => {
+        toast({
+          title: "Coordinates copied!",
+          description: `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`,
+        });
+      }).catch(() => {
+        toast({
+          title: "Copy failed",
+          description: "Could not copy coordinates to clipboard",
+          variant: "destructive",
+        });
+      });
+    },
+  });
+  
+  return null;
 }
 
 export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom = 16 }: ParcelMapProps) {
@@ -88,6 +115,7 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
         className="z-0"
       >
         <ResetViewButton center={center} zoom={zoom} />
+        <MapClickHandler />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
