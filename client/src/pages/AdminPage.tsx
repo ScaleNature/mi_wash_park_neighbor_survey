@@ -1,14 +1,16 @@
 import AdminTable, { ParcelAdmin } from "@/components/AdminTable";
 import AdminLogin from "@/components/AdminLogin";
+import ParcelMap from "@/components/ParcelMap";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Save, LogOut, Download, Upload } from "lucide-react";
+import { Search, Save, LogOut, Leaf, MapPin } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import type { Area, Parcel } from "@shared/schema";
 
 export default function AdminPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,10 +47,23 @@ export default function AdminPage() {
     enabled: !!session?.isAdmin,
   });
 
-  // Get parcels
-  const { data: parcels = [] } = useQuery<ParcelAdmin[]>({
+  // Get areas
+  const { data: areas = [] } = useQuery<Area[]>({
+    queryKey: ["/api/areas"],
+    enabled: !!session?.isAdmin,
+  });
+
+  // Get parcels with full geometry
+  const { data: parcels = [] } = useQuery<Parcel[]>({
     queryKey: ["/api/parcels"],
     enabled: !!session?.isAdmin,
+  });
+
+  // Get parcels in the first area (if it exists)
+  const molinArea = areas.length > 0 ? areas[0] : null;
+  const { data: selectedParcelIds = [] } = useQuery<string[]>({
+    queryKey: ["/api/areas", molinArea?.id, "parcels"],
+    enabled: !!session?.isAdmin && !!molinArea,
   });
 
   // Load settings into form when fetched
@@ -101,13 +116,6 @@ export default function AdminPage() {
     },
   });
 
-  const filteredParcels = parcels.filter(
-    (parcel) =>
-      (parcel.address || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      parcel.codePhrase.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      parcel.id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   const handleSaveSettings = () => {
     const settingsData: any = {
       appName,
@@ -142,121 +150,117 @@ export default function AdminPage() {
     logoutMutation.mutate();
   };
 
-  // Load parcels mutation
-  const loadParcelsMutation = useMutation({
+  // Initialize Molin Area mutation
+  const initializeMolinAreaMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", "/api/admin/load-parcels");
+      return await apiRequest("POST", "/api/admin/initialize-molin-area");
     },
     onSuccess: (data: any) => {
-      const count = data?.count ?? 0;
-      toast({
-        title: count > 0 ? "Parcels loaded successfully" : "No parcels found",
-        description: count > 0 
-          ? `Loaded ${count} parcels from Washtenaw County GIS`
-          : "No parcels found in the specified area. Try adjusting the area settings.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/parcels"] });
-    },
-    onError: (error: Error) => {
-      toast({
-        variant: "destructive",
-        title: "Failed to load parcels",
-        description: error.message,
-      });
-    },
-  });
-
-  // Load Molin area parcels mutation
-  const loadMolinParcelsMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest("POST", "/api/admin/load-molin-parcels");
-    },
-    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/areas"] });
       queryClient.invalidateQueries({ queryKey: ["/api/parcels"] });
       toast({
-        title: "Molin area parcels loaded",
-        description: data.message || `Loaded ${data.count} parcels`,
+        title: "Molin Nature Area initialized",
+        description: `Loaded ${data.parcelCount} parcels, ${data.selectedCount} within 200m selection area`,
       });
     },
     onError: (error: Error) => {
       toast({
         variant: "destructive",
-        title: "Failed to load Molin parcels",
+        title: "Failed to initialize Molin Area",
         description: error.message,
       });
     }
   });
 
-  // Upload parcels mutation
-  const uploadParcelsMutation = useMutation({
-    mutationFn: async (features: any[]) => {
-      return await apiRequest("POST", "/api/admin/upload-parcels", { features });
-    },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/parcels"] });
-      toast({
-        title: "Parcels uploaded successfully",
-        description: data.message || `Loaded ${data.count} parcels from file`,
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        variant: "destructive",
-        title: "Failed to upload parcels",
-        description: error.message,
-      });
-    }
-  });
+  // Helper function to calculate distance between two points
+  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371000; // Earth's radius in meters
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lng2 - lng1) * Math.PI / 180;
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-    try {
-      const text = await file.text();
-      let data;
-
-      // Try to parse as JSON/GeoJSON
-      try {
-        data = JSON.parse(text);
-      } catch {
-        toast({
-          variant: "destructive",
-          title: "Invalid file format",
-          description: "Please upload a valid GeoJSON or JSON file",
-        });
-        return;
-      }
-
-      // Extract features array
-      let features;
-      if (data.type === 'FeatureCollection' && Array.isArray(data.features)) {
-        features = data.features;
-      } else if (Array.isArray(data)) {
-        features = data;
-      } else if (data.features && Array.isArray(data.features)) {
-        features = data.features;
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Invalid file structure",
-          description: "Expected GeoJSON FeatureCollection or features array",
-        });
-        return;
-      }
-
-      uploadParcelsMutation.mutate(features);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error reading file",
-        description: error.message,
-      });
-    }
-
-    // Reset file input
-    event.target.value = '';
+    return R * c; // Distance in meters
   };
+
+  // Helper to get parcel centroid
+  const getParcelCentroid = (geometry: any): { lat: number; lng: number } | null => {
+    if (!geometry || !geometry.coordinates) return null;
+    
+    const ring = Array.isArray(geometry.coordinates[0]) ? geometry.coordinates[0] : geometry.coordinates;
+    
+    if (!ring || ring.length === 0) return null;
+    
+    let sumLat = 0, sumLng = 0;
+    ring.forEach((point: number[]) => {
+      if (Array.isArray(point) && point.length >= 2) {
+        sumLng += point[0];
+        sumLat += point[1];
+      }
+    });
+    
+    return {
+      lat: sumLat / ring.length,
+      lng: sumLng / ring.length
+    };
+  };
+
+  // Filter parcels within display radius
+  const parcelsInDisplayRadius = molinArea ? parcels.filter(parcel => {
+    const centroid = getParcelCentroid(parcel.geometry);
+    if (!centroid) return false;
+    
+    const distance = calculateDistance(
+      molinArea.centerLat,
+      molinArea.centerLng,
+      centroid.lat,
+      centroid.lng
+    );
+    
+    return distance <= molinArea.displayRadiusMeters;
+  }) : [];
+
+  // Convert parcels for map display
+  const mapParcels = parcelsInDisplayRadius.map(parcel => ({
+    id: parcel.id,
+    coordinates: (parcel.geometry as any)?.coordinates || [],
+    address: parcel.address || undefined,
+    status: (selectedParcelIds.includes(parcel.id) ? 'forest-green' : 'none') as 'none' | 'light-green' | 'forest-green',
+    hasCompost: false,
+  }));
+
+  // Convert full Parcels to ParcelAdmin for the table
+  const adminParcels: ParcelAdmin[] = parcels.map(parcel => {
+    const hasQ1 = parcel.q1Response === true;
+    const hasQ2 = parcel.q2Response === true;
+    
+    let status: 'none' | 'light-green' | 'forest-green' = 'none';
+    if (hasQ1 && hasQ2) {
+      status = 'forest-green';
+    } else if (hasQ1) {
+      status = 'light-green';
+    }
+    
+    return {
+      id: parcel.id,
+      address: parcel.address,
+      codePhrase: parcel.codePhrase,
+      status,
+      responseDate: parcel.responseDate?.toString(),
+    };
+  });
+
+  const filteredParcels = adminParcels.filter(
+    (parcel) =>
+      (parcel.address || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      parcel.codePhrase.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      parcel.id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (sessionLoading) {
     return (
@@ -449,82 +453,89 @@ export default function AdminPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Parcel Management</CardTitle>
-            <CardDescription>Search and view parcel information</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex gap-3 items-center">
-                <Button
-                  onClick={() => loadMolinParcelsMutation.mutate()}
-                  disabled={loadMolinParcelsMutation.isPending}
-                  variant="default"
-                  data-testid="button-load-molin-parcels"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  {loadMolinParcelsMutation.isPending ? "Loading..." : "Load Molin Area Parcels"}
-                </Button>
-                <p className="text-sm text-muted-foreground">
-                  Load 1,096 pre-filtered parcels within 500m of Molin Nature Area
+        {areas.length === 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Initialize Molin Nature Area</CardTitle>
+              <CardDescription>Set up the Molin Nature Area with parcels and selection boundaries</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 bg-muted rounded-md">
+                <p className="text-sm mb-3">
+                  The Molin Nature Area initialization will:
                 </p>
+                <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
+                  <li>Load parcels from the pre-prepared GeoJSON file</li>
+                  <li>Create an area centered at Molin Nature Area (42.247891, -83.715445)</li>
+                  <li>Auto-select parcels within 200m of the center</li>
+                  <li>Display all parcels within 1km for admin review</li>
+                </ul>
               </div>
-              <div className="flex gap-3 items-center">
-                <Button
-                  onClick={() => loadParcelsMutation.mutate()}
-                  disabled={loadParcelsMutation.isPending || !settings}
-                  variant="outline"
-                  data-testid="button-load-parcels"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  {loadParcelsMutation.isPending ? "Loading..." : "Load Parcels from GIS"}
-                </Button>
-                <p className="text-sm text-muted-foreground">
-                  Fetch parcels from Washtenaw County based on area settings
-                </p>
-              </div>
-              <div className="flex gap-3 items-center">
-                <label htmlFor="file-upload">
-                  <Button
-                    variant="outline"
-                    disabled={uploadParcelsMutation.isPending}
-                    asChild
-                    data-testid="button-upload-parcels"
-                  >
-                    <span>
-                      <Upload className="h-4 w-4 mr-2" />
-                      {uploadParcelsMutation.isPending ? "Uploading..." : "Upload Parcel File"}
-                    </span>
-                  </Button>
-                </label>
-                <input
-                  id="file-upload"
-                  type="file"
-                  accept=".json,.geojson"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  data-testid="input-upload-file"
-                />
-                <p className="text-sm text-muted-foreground">
-                  Upload your local GeoJSON parcel data file
-                </p>
-              </div>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search by address, nature phrase, or parcel ID..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                data-testid="input-search"
-              />
-            </div>
-            <AdminTable parcels={filteredParcels} />
-          </CardContent>
-        </Card>
+              <Button
+                onClick={() => initializeMolinAreaMutation.mutate()}
+                disabled={initializeMolinAreaMutation.isPending}
+                variant="default"
+                size="lg"
+                data-testid="button-initialize-molin-area"
+              >
+                <Leaf className="h-5 w-5 mr-2" />
+                {initializeMolinAreaMutation.isPending ? "Initializing..." : "Initialize Molin Area"}
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Area: {molinArea?.name}</CardTitle>
+                <CardDescription>
+                  Showing {parcelsInDisplayRadius.length} parcels within {molinArea?.displayRadiusMeters}m display radius, 
+                  {selectedParcelIds.length} parcels selected within {molinArea?.selectionRadiusMeters}m
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="h-[500px] rounded-md overflow-hidden border">
+                  <ParcelMap 
+                    parcels={mapParcels}
+                    center={molinArea ? [molinArea.centerLat, molinArea.centerLng] : undefined}
+                    zoom={15}
+                  />
+                </div>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Leaf className="h-4 w-4 text-primary" />
+                    <span>Leaf markers indicate parcels selected in the area</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    <span>Regular polygons show nearby parcels</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Parcel Management</CardTitle>
+                <CardDescription>Search and view parcel information</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search by address, nature phrase, or parcel ID..."
+                    className="pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    data-testid="input-search"
+                  />
+                </div>
+                <AdminTable parcels={filteredParcels} />
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </div>
   );

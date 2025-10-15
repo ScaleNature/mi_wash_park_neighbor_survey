@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { MapContainer, TileLayer, Polygon, Popup, Marker, useMap, useMapEvents, WMSTileLayer } from 'react-leaflet';
 import { LatLngExpression, Map as LeafletMap, Icon, divIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Trash2, RotateCcw, Layers, ExternalLink } from 'lucide-react';
+import { Trash2, RotateCcw, Layers, ExternalLink, Leaf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { useToast } from '@/hooks/use-toast';
@@ -107,6 +107,17 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
     iconAnchor: [16, 16],
   });
 
+  const leafIcon = divIcon({
+    html: renderToStaticMarkup(
+      <div className="flex items-center justify-center w-8 h-8 bg-green-600 rounded-full shadow-lg">
+        <Leaf className="h-5 w-5 text-white" />
+      </div>
+    ),
+    className: 'leaf-marker',
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+  });
+
   return (
     <div className="relative w-full h-full" data-testid="map-container">
       <MapContainer
@@ -174,6 +185,13 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
             </Popup>
           </Polygon>
         ))}
+        {parcels.filter(p => p.status === 'forest-green').map((parcel) => (
+          <Marker
+            key={`leaf-${parcel.id}`}
+            position={getParcelCenter(parcel.coordinates)}
+            icon={leafIcon}
+          />
+        ))}
         {parcels.filter(p => p.hasCompost).map((parcel) => (
           <Marker
             key={`compost-${parcel.id}`}
@@ -210,6 +228,10 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: '#2d7a4f' }} />
             <span>Full Support</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Leaf className="h-4 w-4 text-green-600" />
+            <span>Selected in Area</span>
           </div>
           <div className="flex items-center gap-2">
             <Trash2 className="h-4 w-4 text-primary" />
