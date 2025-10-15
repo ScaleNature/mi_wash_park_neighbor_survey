@@ -1,4 +1,5 @@
 import ParcelMap, { Parcel } from "@/components/ParcelMap";
+import { useQuery } from "@tanstack/react-query";
 
 const mockParcels: Parcel[] = [
   {
@@ -39,9 +40,23 @@ const mockParcels: Parcel[] = [
 ];
 
 export default function MapPage() {
+  const { data: settings } = useQuery<{
+    centerLat: number;
+    centerLng: number;
+    defaultZoom: number;
+  }>({
+    queryKey: ["/api/settings"],
+  });
+
+  const center: [number, number] = [
+    settings?.centerLat ?? 42.2808,
+    settings?.centerLng ?? -83.7430
+  ];
+  const zoom = settings?.defaultZoom ?? 16;
+
   return (
     <div className="h-[calc(100vh-4rem)]">
-      <ParcelMap parcels={mockParcels} />
+      <ParcelMap parcels={mockParcels} center={center} zoom={zoom} />
     </div>
   );
 }

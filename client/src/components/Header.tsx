@@ -2,9 +2,14 @@ import { Link, useLocation } from "wouter";
 import { Leaf, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Header() {
   const [location] = useLocation();
+  
+  const { data: settings } = useQuery<{ appName: string }>({
+    queryKey: ["/api/settings"],
+  });
 
   const navItems = [
     { href: "/", label: "Map" },
@@ -18,7 +23,9 @@ export default function Header() {
       <div className="flex h-16 items-center px-4 gap-4">
         <Link href="/" className="flex items-center gap-2 hover-elevate px-2 py-1 rounded-md">
           <Leaf className="h-6 w-6 text-primary" data-testid="icon-logo" />
-          <span className="font-serif font-semibold text-lg" data-testid="text-site-title">Molin Nature Area Neighborhood Support</span>
+          <span className="font-serif font-semibold text-lg" data-testid="text-site-title">
+            {settings?.appName || "Molin Nature Area Neighborhood Support"}
+          </span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-2 ml-auto">

@@ -58,12 +58,18 @@ export default function AdminPage() {
   const { toast } = useToast();
 
   // Check admin session
-  const { data: session, isLoading: sessionLoading, refetch: refetchSession } = useQuery({
+  const { data: session, isLoading: sessionLoading, refetch: refetchSession } = useQuery<{ isAdmin: boolean }>({
     queryKey: ["/api/admin/session"],
   });
 
   // Get settings
-  const { data: settings, isLoading: settingsLoading } = useQuery({
+  const { data: settings, isLoading: settingsLoading } = useQuery<{
+    appName: string;
+    adminEmail: string;
+    centerLat: number;
+    centerLng: number;
+    defaultZoom: number;
+  }>({
     queryKey: ["/api/settings"],
     enabled: !!session?.isAdmin,
   });
