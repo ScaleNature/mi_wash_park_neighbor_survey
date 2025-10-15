@@ -88,7 +88,7 @@ export default function AdminPage() {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("/api/admin/logout", "POST");
+      await apiRequest("POST", "/api/admin/logout");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/session"] });
@@ -102,7 +102,7 @@ export default function AdminPage() {
   // Update settings mutation
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/admin/settings", "PATCH", data);
+      return await apiRequest("PATCH", "/api/admin/settings", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });

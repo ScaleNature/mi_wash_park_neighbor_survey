@@ -22,7 +22,7 @@ export default function AdminLogin({ onLoginSuccess }: AdminLoginProps) {
     setIsLoading(true);
 
     try {
-      await apiRequest("/api/admin/login", "POST", { email, password });
+      await apiRequest("POST", "/api/admin/login", { email, password });
       toast({
         title: "Login successful",
         description: "Welcome to the admin dashboard",
