@@ -20,6 +20,8 @@ interface ParcelMapProps {
   parcels: Parcel[];
   center?: LatLngExpression;
   zoom?: number;
+  onParcelClick?: (parcelId: string) => void;
+  adminMode?: boolean;
 }
 
 function ResetViewButton({ center, zoom }: { center: LatLngExpression; zoom: number }) {
@@ -71,7 +73,7 @@ function MapClickHandler() {
   return null;
 }
 
-export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom = 16 }: ParcelMapProps) {
+export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, adminMode = false }: ParcelMapProps) {
   const mapRef = useRef<LeafletMap>(null);
   const [showParcelLayer, setShowParcelLayer] = useState(true);
 
@@ -151,7 +153,14 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
               fillColor: getParcelColor(parcel.status),
               fillOpacity: 0.5,
               weight: 2,
+              className: adminMode ? 'cursor-pointer' : ''
             }}
+            eventHandlers={adminMode && onParcelClick ? {
+              click: (e) => {
+                e.originalEvent.stopPropagation();
+                onParcelClick(parcel.id);
+              }
+            } : undefined}
           >
             <Popup>
               <div className="p-2 space-y-2" data-testid={`popup-parcel-${parcel.id}`}>

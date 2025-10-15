@@ -172,6 +172,32 @@ export default function AdminPage() {
     }
   });
 
+  // Toggle parcel in/out of area mutation
+  const toggleParcelMutation = useMutation({
+    mutationFn: async (parcelId: string) => {
+      if (!molinArea) throw new Error("No area selected");
+      return await apiRequest("POST", `/api/admin/areas/${molinArea.id}/parcels/${parcelId}/toggle`);
+    },
+    onSuccess: (data: any, parcelId: string) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/areas", molinArea?.id, "parcels"] });
+      toast({
+        title: data.inArea ? "Parcel added to area" : "Parcel removed from area",
+        description: `Parcel ${parcelId} ${data.inArea ? 'is now' : 'is no longer'} in the Molin Nature Area`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to toggle parcel",
+        description: error.message,
+      });
+    }
+  });
+
+  const handleParcelClick = (parcelId: string) => {
+    toggleParcelMutation.mutate(parcelId);
+  };
+
   // Helper function to calculate distance between two points
   const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
     const R = 6371000; // Earth's radius in meters
@@ -499,6 +525,8 @@ export default function AdminPage() {
                     parcels={mapParcels}
                     center={molinArea ? [molinArea.centerLat, molinArea.centerLng] : undefined}
                     zoom={15}
+                    onParcelClick={handleParcelClick}
+                    adminMode={true}
                   />
                 </div>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
