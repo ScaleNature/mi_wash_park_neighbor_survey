@@ -12,6 +12,56 @@ declare module "express-session" {
   }
 }
 
+// Helper function to calculate distance between two lat/lng points in meters (Haversine formula)
+function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000; // Earth's radius in meters
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lng2 - lng1) * Math.PI / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; // Distance in meters
+}
+
+// Helper function to calculate parcel centroid from geometry
+function getParcelCentroid(geometry: any): { lat: number; lng: number } | null {
+  if (!geometry) return null;
+  
+  // Handle both formats: {type: 'Polygon', coordinates: [...]} or {coordinates: [...]}
+  let coordinates = geometry.coordinates;
+  
+  // If geometry has coordinates property, use it
+  if (!coordinates || !Array.isArray(coordinates)) {
+    return null;
+  }
+  
+  // Get the outer ring (first array for Polygon)
+  const ring = Array.isArray(coordinates[0]) ? coordinates[0] : coordinates;
+  
+  if (!ring || ring.length === 0) {
+    return null;
+  }
+  
+  // Calculate centroid - coordinates are in [lng, lat] format (GeoJSON standard)
+  let sumLat = 0, sumLng = 0;
+  ring.forEach((point: number[]) => {
+    if (Array.isArray(point) && point.length >= 2) {
+      sumLng += point[0];  // longitude is first
+      sumLat += point[1];  // latitude is second
+    }
+  });
+  
+  return {
+    lat: sumLat / ring.length,
+    lng: sumLng / ring.length
+  };
+}
+
 // Admin authentication middleware
 const isAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (req.session?.isAdmin) {
@@ -126,6 +176,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all areas
+  app.get("/api/areas", async (_req, res) => {
+    try {
+      const areas = await storage.getAllAreas();
+      res.json(areas);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get parcels in a specific area
+  app.get("/api/areas/:areaId/parcels", async (req, res) => {
+    try {
+      const { areaId } = req.params;
+      const parcelIds = await storage.getParcelsInArea(areaId);
+      res.json(parcelIds);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Toggle parcel in area (protected)
+  app.post("/api/admin/areas/:areaId/parcels/:parcelId/toggle", isAdmin, async (req, res) => {
+    try {
+      const { areaId, parcelId } = req.params;
+      
+      const isInArea = await storage.isParcelInArea(areaId, parcelId);
+      
+      if (isInArea) {
+        await storage.removeParcelFromArea(areaId, parcelId);
+        res.json({ message: "Parcel removed from area", inArea: false });
+      } else {
+        await storage.addParcelToArea(areaId, parcelId);
+        res.json({ message: "Parcel added to area", inArea: true });
+      }
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Upload parcels from local file (protected)
   app.post("/api/admin/upload-parcels", isAdmin, async (req, res) => {
     try {
@@ -226,6 +316,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error loading Molin parcels:", error);
       res.status(500).json({ message: error.message || "Failed to load parcels" });
+    }
+  });
+
+  // Initialize Molin Nature Area (protected)
+  app.post("/api/admin/initialize-molin-area", isAdmin, async (req, res) => {
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      const MOLIN_CENTER_LAT = 42.247891;
+      const MOLIN_CENTER_LNG = -83.715445;
+      const SELECTION_RADIUS = 200; // meters
+      const DISPLAY_RADIUS = 1000; // meters
+      
+      // Step 1: Load parcels if not already loaded
+      const existingParcels = await storage.getAllParcels();
+      let parcelCount = existingParcels.length;
+      
+      if (parcelCount === 0) {
+        const filePath = path.join(process.cwd(), 'attached_assets', 'molin_area_parcels.geojson');
+        
+        if (!fs.existsSync(filePath)) {
+          return res.status(404).json({ message: "Molin area parcels file not found" });
+        }
+        
+        const fileContent = fs.readFileSync(filePath, 'utf8');
+        const geojson = JSON.parse(fileContent);
+        
+        if (!geojson.features || !Array.isArray(geojson.features)) {
+          return res.status(400).json({ message: "Invalid GeoJSON format" });
+        }
+        
+        parcelCount = await storage.loadParcelsFromGeoJSON(geojson.features);
+      }
+      
+      // Step 2: Create Molin Nature Area if it doesn't exist
+      const existingAreas = await storage.getAllAreas();
+      let molinArea = existingAreas.find(a => a.name === "Molin Nature Area");
+      
+      if (!molinArea) {
+        molinArea = await storage.createArea({
+          name: "Molin Nature Area",
+          centerLat: MOLIN_CENTER_LAT,
+          centerLng: MOLIN_CENTER_LNG,
+          selectionRadiusMeters: SELECTION_RADIUS,
+          displayRadiusMeters: DISPLAY_RADIUS,
+        });
+      }
+      
+      // Step 3: Auto-select parcels within 200m
+      const allParcels = await storage.getAllParcels();
+      let selectedCount = 0;
+      
+      for (const parcel of allParcels) {
+        const centroid = getParcelCentroid(parcel.geometry);
+        if (!centroid) continue;
+        
+        const distance = calculateDistance(
+          MOLIN_CENTER_LAT,
+          MOLIN_CENTER_LNG,
+          centroid.lat,
+          centroid.lng
+        );
+        
+        if (distance <= SELECTION_RADIUS) {
+          // Check if already in area
+          const alreadyInArea = await storage.isParcelInArea(molinArea.id, parcel.id);
+          if (!alreadyInArea) {
+            await storage.addParcelToArea(molinArea.id, parcel.id);
+            selectedCount++;
+          }
+        }
+      }
+      
+      res.json({
+        message: `Molin Nature Area initialized successfully`,
+        parcelCount,
+        selectedCount,
+        area: molinArea,
+      });
+    } catch (error: any) {
+      console.error("Error initializing Molin area:", error);
+      res.status(500).json({ message: error.message || "Failed to initialize Molin area" });
     }
   });
 
