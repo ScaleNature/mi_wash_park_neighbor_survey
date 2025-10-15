@@ -8,7 +8,27 @@ The platform features an interactive map displaying property parcels with color-
 
 ## Recent Changes
 
-### October 15, 2025 (Latest Session)
+### October 15, 2025 (Current Session - Areas System)
+- **Areas Architecture Implementation**: Redesigned to support multiple nature areas with center-point based parcel selection
+  - Created Areas table and AreaParcels junction table for flexible area-parcel relationships
+  - Molin Nature Area initialized at center point (42.247891, -83.715445)
+  - Auto-selects parcels within 200m selection radius using Haversine distance calculation
+  - Admin map displays all parcels within 1km display radius with leaf markers (🍃) on selected parcels
+  
+- **Parcel Toggle Functionality**: Click-to-toggle parcel selection in admin map
+  - Click any parcel polygon to add/remove from area
+  - Immediate visual feedback with leaf marker appearance/disappearance
+  - Toast notifications confirm add/remove actions
+  
+- **Survey Access Control**: Restricted to area-member parcels only
+  - Added `isParcelInAnyArea()` storage method
+  - `/api/parcels/verify` endpoint checks area membership before allowing survey access
+  - Returns 403 with clear message if parcel not in any area
+  - Ensures only selected community members can participate
+
+- **Admin Interface Simplification**: Single "Initialize Molin Area" button replaces multiple loading options
+
+### October 15, 2025 (Earlier Session)
 - **Complete Parcel System Integration**: Fully operational parcel-based survey system
   - 1,096 parcels loaded from Molin area Shapefile with centroid-based IDs (format: "P42.284198_-83.740703")
   - Survey login uses parcel_id as username with nature phrase authentication
@@ -38,6 +58,14 @@ The platform features an interactive map displaying property parcels with color-
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Admin Credentials
+
+**Default admin login:**
+- Email: `molin.nature.area.care@gmail.com`
+- Password: `password`
+
+These credentials can be changed through the admin settings page after logging in.
 
 ## System Architecture
 
