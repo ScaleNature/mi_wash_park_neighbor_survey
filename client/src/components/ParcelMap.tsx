@@ -2,10 +2,11 @@ import { useRef, useState } from 'react';
 import { MapContainer, TileLayer, Polygon, Popup, Marker, useMap, useMapEvents, WMSTileLayer } from 'react-leaflet';
 import { LatLngExpression, Map as LeafletMap, Icon, divIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Trash2, RotateCcw, Layers } from 'lucide-react';
+import { Trash2, RotateCcw, Layers, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { useToast } from '@/hooks/use-toast';
+import { Link } from 'wouter';
 
 export interface Parcel {
   id: string;
@@ -142,17 +143,33 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
             }}
           >
             <Popup>
-              <div className="p-2" data-testid={`popup-parcel-${parcel.id}`}>
-                <p className="font-semibold">{parcel.address || `Parcel ${parcel.id}`}</p>
+              <div className="p-2 space-y-2" data-testid={`popup-parcel-${parcel.id}`}>
+                <div>
+                  {parcel.address && <p className="font-semibold">{parcel.address}</p>}
+                  <p className="text-xs font-mono text-muted-foreground" data-testid={`text-parcel-id-${parcel.id}`}>
+                    ID: {parcel.id}
+                  </p>
+                </div>
                 <p className="text-sm text-muted-foreground">
                   Status: {parcel.status === 'none' ? 'No response' : parcel.status === 'light-green' ? 'Q1 Support' : 'Full Support'}
                 </p>
                 {parcel.hasCompost && (
-                  <div className="flex items-center gap-1 mt-1 text-sm text-primary">
+                  <div className="flex items-center gap-1 text-sm text-primary">
                     <Trash2 className="h-4 w-4" />
                     <span>Compost bin available</span>
                   </div>
                 )}
+                <Link href="/survey">
+                  <Button 
+                    size="sm" 
+                    variant="default" 
+                    className="w-full mt-1"
+                    data-testid={`button-survey-link-${parcel.id}`}
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Go to Survey
+                  </Button>
+                </Link>
               </div>
             </Popup>
           </Polygon>
