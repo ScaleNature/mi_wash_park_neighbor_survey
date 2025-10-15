@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, real, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, real, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -45,3 +45,21 @@ export const updateAppSettingsSchema = createInsertSchema(appSettings).omit({
 export type InsertAppSettings = z.infer<typeof insertAppSettingsSchema>;
 export type UpdateAppSettings = z.infer<typeof updateAppSettingsSchema>;
 export type AppSettings = typeof appSettings.$inferSelect;
+
+export const parcels = pgTable("parcels", {
+  id: varchar("id").primaryKey(),
+  address: text("address").notNull(),
+  codePhrase: text("code_phrase").notNull(),
+  geometry: jsonb("geometry").notNull(),
+  status: varchar("status").notNull().default("none"),
+  hasCompost: boolean("has_compost").notNull().default(false),
+  responseDate: timestamp("response_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertParcelSchema = createInsertSchema(parcels).omit({
+  createdAt: true,
+});
+
+export type InsertParcel = z.infer<typeof insertParcelSchema>;
+export type Parcel = typeof parcels.$inferSelect;
