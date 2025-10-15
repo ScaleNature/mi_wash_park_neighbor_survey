@@ -1,0 +1,12 @@
+Park neighbor Survey
+I have a small geographic region in mind, with a set of property parcels in it. I would like an application where anyone can view the map and the survey information from the resident.
+If a user has a particular code phrase, associated specifically with a particular parcel, they can answer the survey and have the results stored. Preferably, filling out the survey in certain ways would change the color of the parcel in the map, or somehow indicate that there were survey answers. The admin page would show the code phrase for each parcel.
+The code phrase would be a random made up phrase about nature, natural communities, or ecosystems in southeast Michigan.
+
+Survey questions.
+Neighborhood Support of healthy natural systems is a long-term transformation that involves slow and steady removal of invasive species and the reintroduction of native species. Molin nature area has seen over 10 years of steady progress towards this objective. The long narrow geographic nature of the park means that work inside of the park is visible by many neighborhood properties. Residents can assist this long-term project in many ways, including the reduction of the sources of invasive species seeds.
+1. I welcome Park Steward‘s to remove invasive species in Molin nature area near my property. Yes. No. Comments. If yes to this question and no to question number two, then parcel appears light green.
+2. As community partners, I understand that Park Steward’s are available to assist me in the removal of the same species on my property, through either consultation, removal assistance, or donation based work. Yes. No. Questions. If yes to the first two questions, then parcel appears forest green. 
+3. During the spring season, Park Stewards pull and compost bags of invasive species like Garlic Mustard and Dame’s Rocket. I welcome Park Steward to use my compost bin, as appropriate to more easily dispose of such material. Yes. No. Comment. Yes means a tiny compost bin icon would appear on the parcel in the map. 
+
+The application would have another page that would discuss invasive species and the list of such species would be included. Invasive Woodies, herbaceous, and vines would be listed and a calendar of suggested actions would be included.
