@@ -55,6 +55,10 @@ export default function AdminPage() {
   const [centerLat, setCenterLat] = useState('');
   const [centerLng, setCenterLng] = useState('');
   const [zoom, setZoom] = useState('');
+  const [boundingBoxMinLat, setBoundingBoxMinLat] = useState('');
+  const [boundingBoxMaxLat, setBoundingBoxMaxLat] = useState('');
+  const [boundingBoxMinLng, setBoundingBoxMinLng] = useState('');
+  const [boundingBoxMaxLng, setBoundingBoxMaxLng] = useState('');
   const { toast } = useToast();
 
   // Check admin session
@@ -69,6 +73,10 @@ export default function AdminPage() {
     centerLat: number;
     centerLng: number;
     defaultZoom: number;
+    boundingBoxMinLat?: number;
+    boundingBoxMaxLat?: number;
+    boundingBoxMinLng?: number;
+    boundingBoxMaxLng?: number;
   }>({
     queryKey: ["/api/settings"],
     enabled: !!session?.isAdmin,
@@ -82,6 +90,10 @@ export default function AdminPage() {
       setCenterLat(settings.centerLat?.toString() || '');
       setCenterLng(settings.centerLng?.toString() || '');
       setZoom(settings.defaultZoom?.toString() || '');
+      setBoundingBoxMinLat(settings.boundingBoxMinLat?.toString() || '');
+      setBoundingBoxMaxLat(settings.boundingBoxMaxLat?.toString() || '');
+      setBoundingBoxMinLng(settings.boundingBoxMinLng?.toString() || '');
+      setBoundingBoxMaxLng(settings.boundingBoxMaxLng?.toString() || '');
     }
   }, [settings]);
 
@@ -140,6 +152,12 @@ export default function AdminPage() {
     if (adminPassword) {
       settingsData.adminPassword = adminPassword;
     }
+
+    // Always include bounding box fields (null if empty to allow clearing)
+    settingsData.boundingBoxMinLat = boundingBoxMinLat ? parseFloat(boundingBoxMinLat) : null;
+    settingsData.boundingBoxMaxLat = boundingBoxMaxLat ? parseFloat(boundingBoxMaxLat) : null;
+    settingsData.boundingBoxMinLng = boundingBoxMinLng ? parseFloat(boundingBoxMinLng) : null;
+    settingsData.boundingBoxMaxLng = boundingBoxMaxLng ? parseFloat(boundingBoxMaxLng) : null;
 
     updateSettingsMutation.mutate(settingsData);
   };
@@ -255,6 +273,57 @@ export default function AdminPage() {
                   placeholder="16"
                   data-testid="input-zoom"
                 />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-base">Bounding Box (optional - click map to copy coordinates)</Label>
+              <p className="text-sm text-muted-foreground">Define the geographic area for parcel identification</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="bbox-min-lat">Min Latitude (South)</Label>
+                  <Input
+                    id="bbox-min-lat"
+                    value={boundingBoxMinLat}
+                    onChange={(e) => setBoundingBoxMinLat(e.target.value)}
+                    className="mt-2"
+                    placeholder="42.2800"
+                    data-testid="input-bbox-min-lat"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="bbox-max-lat">Max Latitude (North)</Label>
+                  <Input
+                    id="bbox-max-lat"
+                    value={boundingBoxMaxLat}
+                    onChange={(e) => setBoundingBoxMaxLat(e.target.value)}
+                    className="mt-2"
+                    placeholder="42.2820"
+                    data-testid="input-bbox-max-lat"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="bbox-min-lng">Min Longitude (West)</Label>
+                  <Input
+                    id="bbox-min-lng"
+                    value={boundingBoxMinLng}
+                    onChange={(e) => setBoundingBoxMinLng(e.target.value)}
+                    className="mt-2"
+                    placeholder="-83.7440"
+                    data-testid="input-bbox-min-lng"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="bbox-max-lng">Max Longitude (East)</Label>
+                  <Input
+                    id="bbox-max-lng"
+                    value={boundingBoxMaxLng}
+                    onChange={(e) => setBoundingBoxMaxLng(e.target.value)}
+                    className="mt-2"
+                    placeholder="-83.7420"
+                    data-testid="input-bbox-max-lng"
+                  />
+                </div>
               </div>
             </div>
             <Button
