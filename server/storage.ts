@@ -33,10 +33,10 @@ export class MemStorage implements IStorage {
       centerLat: 42.2808,
       centerLng: -83.7430,
       defaultZoom: 16,
-      boundingBoxMinLat: null,
-      boundingBoxMaxLat: null,
-      boundingBoxMinLng: null,
-      boundingBoxMaxLng: null,
+      areaMode: "center",
+      radiusMeters: null,
+      boundingBoxTopLeft: null,
+      boundingBoxBottomRight: null,
       updatedAt: new Date(),
     };
   }

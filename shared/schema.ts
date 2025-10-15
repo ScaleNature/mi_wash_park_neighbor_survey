@@ -25,10 +25,10 @@ export const appSettings = pgTable("app_settings", {
   centerLat: real("center_lat").notNull().default(42.2808),
   centerLng: real("center_lng").notNull().default(-83.7430),
   defaultZoom: real("default_zoom").notNull().default(16),
-  boundingBoxMinLat: real("bounding_box_min_lat"),
-  boundingBoxMaxLat: real("bounding_box_max_lat"),
-  boundingBoxMinLng: real("bounding_box_min_lng"),
-  boundingBoxMaxLng: real("bounding_box_max_lng"),
+  areaMode: text("area_mode").default("center"),
+  radiusMeters: real("radius_meters"),
+  boundingBoxTopLeft: text("bounding_box_top_left"),
+  boundingBoxBottomRight: text("bounding_box_bottom_right"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

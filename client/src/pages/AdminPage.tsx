@@ -55,10 +55,10 @@ export default function AdminPage() {
   const [centerLat, setCenterLat] = useState('');
   const [centerLng, setCenterLng] = useState('');
   const [zoom, setZoom] = useState('');
-  const [boundingBoxMinLat, setBoundingBoxMinLat] = useState('');
-  const [boundingBoxMaxLat, setBoundingBoxMaxLat] = useState('');
-  const [boundingBoxMinLng, setBoundingBoxMinLng] = useState('');
-  const [boundingBoxMaxLng, setBoundingBoxMaxLng] = useState('');
+  const [areaMode, setAreaMode] = useState<'center' | 'bbox'>('center');
+  const [radiusMeters, setRadiusMeters] = useState('');
+  const [bboxTopLeft, setBboxTopLeft] = useState('');
+  const [bboxBottomRight, setBboxBottomRight] = useState('');
   const { toast } = useToast();
 
   // Check admin session
@@ -73,10 +73,10 @@ export default function AdminPage() {
     centerLat: number;
     centerLng: number;
     defaultZoom: number;
-    boundingBoxMinLat?: number;
-    boundingBoxMaxLat?: number;
-    boundingBoxMinLng?: number;
-    boundingBoxMaxLng?: number;
+    areaMode?: string;
+    radiusMeters?: number;
+    boundingBoxTopLeft?: string;
+    boundingBoxBottomRight?: string;
   }>({
     queryKey: ["/api/settings"],
     enabled: !!session?.isAdmin,
@@ -90,10 +90,10 @@ export default function AdminPage() {
       setCenterLat(settings.centerLat?.toString() || '');
       setCenterLng(settings.centerLng?.toString() || '');
       setZoom(settings.defaultZoom?.toString() || '');
-      setBoundingBoxMinLat(settings.boundingBoxMinLat?.toString() || '');
-      setBoundingBoxMaxLat(settings.boundingBoxMaxLat?.toString() || '');
-      setBoundingBoxMinLng(settings.boundingBoxMinLng?.toString() || '');
-      setBoundingBoxMaxLng(settings.boundingBoxMaxLng?.toString() || '');
+      setAreaMode((settings.areaMode as 'center' | 'bbox') || 'center');
+      setRadiusMeters(settings.radiusMeters?.toString() || '');
+      setBboxTopLeft(settings.boundingBoxTopLeft || '');
+      setBboxBottomRight(settings.boundingBoxBottomRight || '');
     }
   }, [settings]);
 
@@ -146,6 +146,7 @@ export default function AdminPage() {
       centerLat: parseFloat(centerLat),
       centerLng: parseFloat(centerLng),
       defaultZoom: parseFloat(zoom),
+      areaMode,
     };
 
     // Only include password if it's been changed
@@ -153,11 +154,16 @@ export default function AdminPage() {
       settingsData.adminPassword = adminPassword;
     }
 
-    // Always include bounding box fields (null if empty to allow clearing)
-    settingsData.boundingBoxMinLat = boundingBoxMinLat ? parseFloat(boundingBoxMinLat) : null;
-    settingsData.boundingBoxMaxLat = boundingBoxMaxLat ? parseFloat(boundingBoxMaxLat) : null;
-    settingsData.boundingBoxMinLng = boundingBoxMinLng ? parseFloat(boundingBoxMinLng) : null;
-    settingsData.boundingBoxMaxLng = boundingBoxMaxLng ? parseFloat(boundingBoxMaxLng) : null;
+    // Include area-specific fields based on mode
+    if (areaMode === 'center') {
+      settingsData.radiusMeters = radiusMeters ? parseFloat(radiusMeters) : null;
+      settingsData.boundingBoxTopLeft = null;
+      settingsData.boundingBoxBottomRight = null;
+    } else {
+      settingsData.radiusMeters = null;
+      settingsData.boundingBoxTopLeft = bboxTopLeft || null;
+      settingsData.boundingBoxBottomRight = bboxBottomRight || null;
+    }
 
     updateSettingsMutation.mutate(settingsData);
   };
@@ -276,55 +282,75 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-base">Bounding Box (optional - click map to copy coordinates)</Label>
-              <p className="text-sm text-muted-foreground">Define the geographic area for parcel identification</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="bbox-min-lat">Min Latitude (South)</Label>
-                  <Input
-                    id="bbox-min-lat"
-                    value={boundingBoxMinLat}
-                    onChange={(e) => setBoundingBoxMinLat(e.target.value)}
-                    className="mt-2"
-                    placeholder="42.2800"
-                    data-testid="input-bbox-min-lat"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="bbox-max-lat">Max Latitude (North)</Label>
-                  <Input
-                    id="bbox-max-lat"
-                    value={boundingBoxMaxLat}
-                    onChange={(e) => setBoundingBoxMaxLat(e.target.value)}
-                    className="mt-2"
-                    placeholder="42.2820"
-                    data-testid="input-bbox-max-lat"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="bbox-min-lng">Min Longitude (West)</Label>
-                  <Input
-                    id="bbox-min-lng"
-                    value={boundingBoxMinLng}
-                    onChange={(e) => setBoundingBoxMinLng(e.target.value)}
-                    className="mt-2"
-                    placeholder="-83.7440"
-                    data-testid="input-bbox-min-lng"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="bbox-max-lng">Max Longitude (East)</Label>
-                  <Input
-                    id="bbox-max-lng"
-                    value={boundingBoxMaxLng}
-                    onChange={(e) => setBoundingBoxMaxLng(e.target.value)}
-                    className="mt-2"
-                    placeholder="-83.7420"
-                    data-testid="input-bbox-max-lng"
-                  />
+            <div className="space-y-4">
+              <div>
+                <Label className="text-base">Area Definition (click map to copy coordinates)</Label>
+                <p className="text-sm text-muted-foreground mb-3">Define the geographic area for parcel identification</p>
+                <div className="flex gap-4 mb-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      value="center"
+                      checked={areaMode === 'center'}
+                      onChange={(e) => setAreaMode(e.target.value as 'center' | 'bbox')}
+                      className="w-4 h-4"
+                      data-testid="radio-area-center"
+                    />
+                    <span>Center + Radius</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      value="bbox"
+                      checked={areaMode === 'bbox'}
+                      onChange={(e) => setAreaMode(e.target.value as 'center' | 'bbox')}
+                      className="w-4 h-4"
+                      data-testid="radio-area-bbox"
+                    />
+                    <span>Bounding Box</span>
+                  </label>
                 </div>
               </div>
+
+              {areaMode === 'center' ? (
+                <div>
+                  <Label htmlFor="radius">Radius (meters)</Label>
+                  <Input
+                    id="radius"
+                    value={radiusMeters}
+                    onChange={(e) => setRadiusMeters(e.target.value)}
+                    className="mt-2"
+                    placeholder="500"
+                    data-testid="input-radius"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">Distance from center point in meters</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="bbox-top-left">Top-Left Corner (lat, lng)</Label>
+                    <Input
+                      id="bbox-top-left"
+                      value={bboxTopLeft}
+                      onChange={(e) => setBboxTopLeft(e.target.value)}
+                      className="mt-2"
+                      placeholder="42.2820, -83.7440"
+                      data-testid="input-bbox-top-left"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="bbox-bottom-right">Bottom-Right Corner (lat, lng)</Label>
+                    <Input
+                      id="bbox-bottom-right"
+                      value={bboxBottomRight}
+                      onChange={(e) => setBboxBottomRight(e.target.value)}
+                      className="mt-2"
+                      placeholder="42.2800, -83.7420"
+                      data-testid="input-bbox-bottom-right"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             <Button
               onClick={handleSaveSettings}
