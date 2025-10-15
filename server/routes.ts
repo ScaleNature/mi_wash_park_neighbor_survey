@@ -102,8 +102,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Don't send password to client
       const { adminPassword, ...publicSettings } = settings;
       res.json(publicSettings);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating settings:", error);
+      // Handle Zod validation errors
+      if (error.name === "ZodError") {
+        return res.status(400).json({ 
+          message: "Invalid input data", 
+          errors: error.errors 
+        });
+      }
       res.status(500).json({ message: "Failed to update settings" });
     }
   });

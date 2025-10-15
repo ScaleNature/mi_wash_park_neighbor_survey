@@ -1,5 +1,8 @@
 import { type User, type InsertUser, type AppSettings, type UpdateAppSettings } from "@shared/schema";
 import { randomUUID } from "crypto";
+import bcrypt from "bcrypt";
+
+const SALT_ROUNDS = 10;
 
 // modify the interface with any CRUD methods
 // you might need
@@ -16,16 +19,17 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
-  private appSettings: AppSettings | null;
+  private appSettings: AppSettings;
 
   constructor() {
     this.users = new Map();
-    // Initialize with default settings
+    // Hash the default password synchronously to avoid race conditions
+    const hashedPassword = bcrypt.hashSync("admin123", SALT_ROUNDS);
     this.appSettings = {
       id: randomUUID(),
       appName: "Molin Nature Area Neighborhood Support",
       adminEmail: "molin.nature.area.care@gmail.com",
-      adminPassword: "admin123", // Default password - should be changed
+      adminPassword: hashedPassword,
       centerLat: 42.2808,
       centerLng: -83.7430,
       defaultZoom: 16,
@@ -51,13 +55,15 @@ export class MemStorage implements IStorage {
   }
 
   async getAppSettings(): Promise<AppSettings | undefined> {
-    return this.appSettings || undefined;
+    return this.appSettings;
   }
 
   async updateAppSettings(settings: UpdateAppSettings): Promise<AppSettings> {
-    if (!this.appSettings) {
-      throw new Error("App settings not initialized");
+    // If password is being updated, hash it
+    if (settings.adminPassword) {
+      settings.adminPassword = await bcrypt.hash(settings.adminPassword, SALT_ROUNDS);
     }
+    
     this.appSettings = {
       ...this.appSettings,
       ...settings,
@@ -67,10 +73,13 @@ export class MemStorage implements IStorage {
   }
 
   async verifyAdminCredentials(email: string, password: string): Promise<boolean> {
-    if (!this.appSettings) {
+    if (!this.appSettings || !this.appSettings.adminPassword) {
       return false;
     }
-    return this.appSettings.adminEmail === email && this.appSettings.adminPassword === password;
+    // Compare email and verify password using bcrypt
+    const emailMatches = this.appSettings.adminEmail === email;
+    const passwordMatches = await bcrypt.compare(password, this.appSettings.adminPassword);
+    return emailMatches && passwordMatches;
   }
 }
 
