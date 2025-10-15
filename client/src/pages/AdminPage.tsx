@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Save, LogOut, Download } from "lucide-react";
+import { Search, Save, LogOut, Download, Upload } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -165,6 +165,77 @@ export default function AdminPage() {
       });
     },
   });
+
+  // Upload parcels mutation
+  const uploadParcelsMutation = useMutation({
+    mutationFn: async (features: any[]) => {
+      return await apiRequest("POST", "/api/admin/upload-parcels", { features });
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/parcels"] });
+      toast({
+        title: "Parcels uploaded successfully",
+        description: data.message || `Loaded ${data.count} parcels from file`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to upload parcels",
+        description: error.message,
+      });
+    }
+  });
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      let data;
+
+      // Try to parse as JSON/GeoJSON
+      try {
+        data = JSON.parse(text);
+      } catch {
+        toast({
+          variant: "destructive",
+          title: "Invalid file format",
+          description: "Please upload a valid GeoJSON or JSON file",
+        });
+        return;
+      }
+
+      // Extract features array
+      let features;
+      if (data.type === 'FeatureCollection' && Array.isArray(data.features)) {
+        features = data.features;
+      } else if (Array.isArray(data)) {
+        features = data;
+      } else if (data.features && Array.isArray(data.features)) {
+        features = data.features;
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Invalid file structure",
+          description: "Expected GeoJSON FeatureCollection or features array",
+        });
+        return;
+      }
+
+      uploadParcelsMutation.mutate(features);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error reading file",
+        description: error.message,
+      });
+    }
+
+    // Reset file input
+    event.target.value = '';
+  };
 
   if (sessionLoading) {
     return (
@@ -363,19 +434,47 @@ export default function AdminPage() {
             <CardDescription>Search and view parcel information</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-3 items-center">
-              <Button
-                onClick={() => loadParcelsMutation.mutate()}
-                disabled={loadParcelsMutation.isPending || !settings}
-                variant="default"
-                data-testid="button-load-parcels"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                {loadParcelsMutation.isPending ? "Loading..." : "Load Parcels from GIS"}
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                Fetch parcels from Washtenaw County based on area settings
-              </p>
+            <div className="space-y-3">
+              <div className="flex gap-3 items-center">
+                <Button
+                  onClick={() => loadParcelsMutation.mutate()}
+                  disabled={loadParcelsMutation.isPending || !settings}
+                  variant="default"
+                  data-testid="button-load-parcels"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {loadParcelsMutation.isPending ? "Loading..." : "Load Parcels from GIS"}
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  Fetch parcels from Washtenaw County based on area settings
+                </p>
+              </div>
+              <div className="flex gap-3 items-center">
+                <label htmlFor="file-upload">
+                  <Button
+                    variant="outline"
+                    disabled={uploadParcelsMutation.isPending}
+                    asChild
+                    data-testid="button-upload-parcels"
+                  >
+                    <span>
+                      <Upload className="h-4 w-4 mr-2" />
+                      {uploadParcelsMutation.isPending ? "Uploading..." : "Upload Parcel File"}
+                    </span>
+                  </Button>
+                </label>
+                <input
+                  id="file-upload"
+                  type="file"
+                  accept=".json,.geojson"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  data-testid="input-upload-file"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Upload your local GeoJSON parcel data file
+                </p>
+              </div>
             </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

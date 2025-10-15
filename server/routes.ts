@@ -126,6 +126,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload parcels from local file (protected)
+  app.post("/api/admin/upload-parcels", isAdmin, async (req, res) => {
+    try {
+      const { features } = req.body;
+      
+      if (!features || !Array.isArray(features)) {
+        return res.status(400).json({ message: "Invalid file format. Expected GeoJSON features array." });
+      }
+
+      if (features.length === 0) {
+        return res.status(400).json({ message: "No parcels found in uploaded file" });
+      }
+
+      // Transform GeoJSON features to format expected by storage
+      // GeoJSON has "properties", ArcGIS has "attributes"
+      // For geometry: extract coordinates and convert to [lat, lng] format for Leaflet
+      const transformedFeatures = features.map(feature => {
+        // Handle both GeoJSON and ArcGIS formats
+        const properties = feature.properties || feature.attributes || {};
+        const geom = feature.geometry;
+
+        if (!geom) {
+          console.warn("Feature missing geometry:", feature);
+          return {
+            attributes: properties,
+            geometry: { coordinates: [] }
+          };
+        }
+
+        // Extract coordinates in Leaflet format: [[lat, lng], ...]
+        let coordinates;
+        
+        if (geom.rings) {
+          // ArcGIS format: { rings: [[[x, y], ...]] }
+          // ArcGIS uses [lng, lat] or [x, y], Leaflet expects [lat, lng]
+          coordinates = geom.rings.map((ring: number[][]) => 
+            ring.map(([x, y]) => [y, x]) // Swap to [lat, lng]
+          );
+        } else if (geom.coordinates && geom.type === 'Polygon') {
+          // GeoJSON Polygon format: { type: "Polygon", coordinates: [[[lng, lat], ...]] }
+          // GeoJSON uses [lng, lat], Leaflet expects [lat, lng]
+          coordinates = geom.coordinates.map((ring: number[][]) => 
+            ring.map(([lng, lat]) => [lat, lng]) // Swap to [lat, lng]
+          );
+        } else if (geom.coordinates) {
+          // Assume it's already in the right format
+          coordinates = geom.coordinates;
+        } else {
+          console.warn("Unknown geometry format:", geom);
+          coordinates = [];
+        }
+
+        return {
+          attributes: properties,
+          geometry: { coordinates } // Store in format expected by map: { coordinates: [[[lat, lng], ...]] }
+        };
+      });
+
+      // Process the transformed features
+      const count = await storage.loadParcelsFromGIS(transformedFeatures);
+      
+      res.json({ 
+        message: `Successfully loaded ${count} parcels from uploaded file`,
+        count 
+      });
+    } catch (error: any) {
+      console.error("Error uploading parcels:", error);
+      res.status(500).json({ message: error.message || "Failed to upload parcels" });
+    }
+  });
+
   // Load parcels from ArcGIS (protected)
   app.post("/api/admin/load-parcels", isAdmin, async (req, res) => {
     try {
