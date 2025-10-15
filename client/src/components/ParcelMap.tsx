@@ -1,8 +1,8 @@
-import { useRef } from 'react';
-import { MapContainer, TileLayer, Polygon, Popup, Marker, useMap, useMapEvents } from 'react-leaflet';
+import { useRef, useState } from 'react';
+import { MapContainer, TileLayer, Polygon, Popup, Marker, useMap, useMapEvents, WMSTileLayer } from 'react-leaflet';
 import { LatLngExpression, Map as LeafletMap, Icon, divIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Trash2, RotateCcw } from 'lucide-react';
+import { Trash2, RotateCcw, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { useToast } from '@/hooks/use-toast';
@@ -72,6 +72,7 @@ function MapClickHandler() {
 
 export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom = 16 }: ParcelMapProps) {
   const mapRef = useRef<LeafletMap>(null);
+  const [showParcelLayer, setShowParcelLayer] = useState(true);
 
   const getParcelColor = (status: string) => {
     switch (status) {
@@ -120,6 +121,15 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        {showParcelLayer && (
+          <WMSTileLayer
+            url="https://services3.arcgis.com/mRwarx73j5FhfOkR/arcgis/services/Parcels/MapServer/WMSServer"
+            layers="0"
+            format="image/png"
+            transparent={true}
+            attribution='&copy; <a href="https://www.washtenaw.org">Washtenaw County GIS</a>'
+          />
+        )}
         {parcels.map((parcel) => (
           <Polygon
             key={parcel.id}
@@ -155,6 +165,19 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
           />
         ))}
       </MapContainer>
+
+      <div className="absolute top-4 right-4 z-[1000]">
+        <Button
+          onClick={() => setShowParcelLayer(!showParcelLayer)}
+          variant={showParcelLayer ? "default" : "outline"}
+          size="sm"
+          className="shadow-md"
+          data-testid="button-toggle-parcels"
+        >
+          <Layers className="h-4 w-4 mr-2" />
+          {showParcelLayer ? "Hide" : "Show"} Parcels
+        </Button>
+      </div>
 
       <div className="absolute bottom-4 right-4 bg-card/95 backdrop-blur-sm border rounded-md p-4 z-[1000]" data-testid="map-legend">
         <h3 className="font-semibold text-sm mb-2">Legend</h3>
