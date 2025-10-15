@@ -48,11 +48,12 @@ export type AppSettings = typeof appSettings.$inferSelect;
 
 export const parcels = pgTable("parcels", {
   id: varchar("id").primaryKey(),
-  address: text("address").notNull(),
+  address: text("address"),
   codePhrase: text("code_phrase").notNull(),
   geometry: jsonb("geometry").notNull(),
-  status: varchar("status").notNull().default("none"),
-  hasCompost: boolean("has_compost").notNull().default(false),
+  q1Response: boolean("q1_response"),
+  q2Response: boolean("q2_response"),
+  q3Response: boolean("q3_response"),
   responseDate: timestamp("response_date"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -61,5 +62,11 @@ export const insertParcelSchema = createInsertSchema(parcels).omit({
   createdAt: true,
 });
 
+export const updateParcelSchema = createInsertSchema(parcels).omit({
+  id: true,
+  createdAt: true,
+}).partial();
+
 export type InsertParcel = z.infer<typeof insertParcelSchema>;
+export type UpdateParcel = z.infer<typeof updateParcelSchema>;
 export type Parcel = typeof parcels.$inferSelect;

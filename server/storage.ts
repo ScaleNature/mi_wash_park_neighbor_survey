@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type AppSettings, type UpdateAppSettings, type Parcel, type InsertParcel } from "@shared/schema";
+import { type User, type InsertUser, type AppSettings, type UpdateAppSettings, type Parcel, type InsertParcel, type UpdateParcel } from "@shared/schema";
 import { randomUUID } from "crypto";
 import bcrypt from "bcrypt";
 
@@ -22,7 +22,11 @@ export interface IStorage {
   verifyAdminCredentials(email: string, password: string): Promise<boolean>;
   
   getAllParcels(): Promise<Parcel[]>;
-  loadParcelsFromGIS(features: any[]): Promise<number>;
+  getParcelById(id: string): Promise<Parcel | undefined>;
+  updateParcel(id: string, updates: UpdateParcel): Promise<Parcel | undefined>;
+  regenerateNaturePhrase(id: string): Promise<string | undefined>;
+  verifyParcelCredentials(parcelId: string, codePhrase: string): Promise<boolean>;
+  loadParcelsFromGeoJSON(features: any[]): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -107,37 +111,76 @@ export class MemStorage implements IStorage {
     return Array.from(this.parcels.values());
   }
 
-  async loadParcelsFromGIS(features: any[]): Promise<number> {
+  async getParcelById(id: string): Promise<Parcel | undefined> {
+    return this.parcels.get(id);
+  }
+
+  async updateParcel(id: string, updates: UpdateParcel): Promise<Parcel | undefined> {
+    const parcel = this.parcels.get(id);
+    if (!parcel) return undefined;
+    
+    const updated: Parcel = {
+      ...parcel,
+      ...updates,
+    };
+    
+    this.parcels.set(id, updated);
+    return updated;
+  }
+
+  async regenerateNaturePhrase(id: string): Promise<string | undefined> {
+    const parcel = this.parcels.get(id);
+    if (!parcel) return undefined;
+    
+    const newPhrase = this.generateNaturePhrase();
+    parcel.codePhrase = newPhrase;
+    this.parcels.set(id, parcel);
+    return newPhrase;
+  }
+
+  async verifyParcelCredentials(parcelId: string, codePhrase: string): Promise<boolean> {
+    const parcel = this.parcels.get(parcelId);
+    if (!parcel) return false;
+    return parcel.codePhrase === codePhrase;
+  }
+
+  async loadParcelsFromGeoJSON(features: any[]): Promise<number> {
     let count = 0;
     
     for (const feature of features) {
-      const attributes = feature.attributes;
+      // GeoJSON format
+      const properties = feature.properties || {};
       const geometry = feature.geometry;
       
-      // Try to extract address from various possible field names
-      const address = attributes.SITEADDRESS || 
-                     attributes.ADDRESS || 
-                     attributes.FULLADDR || 
-                     attributes.ADDR ||
-                     attributes.FullAddress ||
-                     "Unknown Address";
-      
-      // Use parcel ID from GIS data
-      const parcelId = attributes.OBJECTID?.toString() || 
-                      attributes.PARCELID?.toString() || 
-                      attributes.PIN?.toString() || 
-                      randomUUID();
+      // Generate a stable parcel ID based on geometry centroid
+      // This creates consistent IDs like "P42.2808_-83.7430" that can be reused
+      let parcelId;
+      if (geometry && geometry.type === 'Polygon' && geometry.coordinates && geometry.coordinates[0]) {
+        const ring = geometry.coordinates[0];
+        let sumLat = 0, sumLng = 0;
+        ring.forEach((point: number[]) => {
+          sumLng += point[0];
+          sumLat += point[1];
+        });
+        const centroidLat = (sumLat / ring.length).toFixed(6);
+        const centroidLng = (sumLng / ring.length).toFixed(6);
+        parcelId = `P${centroidLat}_${centroidLng}`;
+      } else {
+        // Fallback to sequential ID
+        parcelId = `PARCEL_${String(count + 1).padStart(4, '0')}`;
+      }
       
       // Generate unique nature phrase for this parcel
       const codePhrase = this.generateNaturePhrase();
       
       const parcel: Parcel = {
         id: parcelId,
-        address,
+        address: null,
         codePhrase,
         geometry,
-        status: "none",
-        hasCompost: false,
+        q1Response: null,
+        q2Response: null,
+        q3Response: null,
         responseDate: null,
         createdAt: new Date(),
       };

@@ -185,7 +185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Process the transformed features
-      const count = await storage.loadParcelsFromGIS(transformedFeatures);
+      const count = await storage.loadParcelsFromGeoJSON(transformedFeatures);
       
       res.json({ 
         message: `Successfully loaded ${count} parcels from uploaded file`,
@@ -194,6 +194,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error uploading parcels:", error);
       res.status(500).json({ message: error.message || "Failed to upload parcels" });
+    }
+  });
+
+  // Load Molin area parcels from prepared GeoJSON file (protected)
+  app.post("/api/admin/load-molin-parcels", isAdmin, async (req, res) => {
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      const filePath = path.join(process.cwd(), 'attached_assets', 'molin_area_parcels.geojson');
+      
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "Molin area parcels file not found" });
+      }
+      
+      const fileContent = fs.readFileSync(filePath, 'utf8');
+      const geojson = JSON.parse(fileContent);
+      
+      if (!geojson.features || !Array.isArray(geojson.features)) {
+        return res.status(400).json({ message: "Invalid GeoJSON format" });
+      }
+      
+      // Load parcels - coordinates are already in lat/lon format
+      const count = await storage.loadParcelsFromGeoJSON(geojson.features);
+      
+      res.json({ 
+        count, 
+        message: `Successfully loaded ${count} parcels from Molin area` 
+      });
+    } catch (error: any) {
+      console.error("Error loading Molin parcels:", error);
+      res.status(500).json({ message: error.message || "Failed to load parcels" });
     }
   });
 
@@ -279,12 +311,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Process and save parcels
-      const count = await storage.loadParcelsFromGIS(data.features);
+      const count = await storage.loadParcelsFromGeoJSON(data.features);
 
       res.json({ count, message: `Successfully loaded ${count} parcels` });
     } catch (error: any) {
       console.error("Error loading parcels:", error);
       res.status(500).json({ message: error.message || "Failed to load parcels" });
+    }
+  });
+
+  // Update parcel (protected - admin only)
+  app.patch("/api/admin/parcels/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const parcel = await storage.updateParcel(id, req.body);
+      
+      if (!parcel) {
+        return res.status(404).json({ message: "Parcel not found" });
+      }
+      
+      res.json(parcel);
+    } catch (error) {
+      console.error("Error updating parcel:", error);
+      res.status(500).json({ message: "Failed to update parcel" });
+    }
+  });
+
+  // Regenerate nature phrase for parcel (protected - admin only)
+  app.post("/api/admin/parcels/:id/regenerate-phrase", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const newPhrase = await storage.regenerateNaturePhrase(id);
+      
+      if (!newPhrase) {
+        return res.status(404).json({ message: "Parcel not found" });
+      }
+      
+      res.json({ codePhrase: newPhrase });
+    } catch (error) {
+      console.error("Error regenerating phrase:", error);
+      res.status(500).json({ message: "Failed to regenerate phrase" });
+    }
+  });
+
+  // Parcel login verification
+  app.post("/api/parcels/verify", async (req, res) => {
+    try {
+      const { parcelId, codePhrase } = req.body;
+      
+      if (!parcelId || !codePhrase) {
+        return res.status(400).json({ message: "Parcel ID and code phrase are required" });
+      }
+      
+      const isValid = await storage.verifyParcelCredentials(parcelId, codePhrase);
+      
+      if (isValid) {
+        const parcel = await storage.getParcelById(parcelId);
+        res.json({ success: true, parcel });
+      } else {
+        res.status(401).json({ message: "Invalid parcel ID or code phrase" });
+      }
+    } catch (error) {
+      console.error("Parcel verification error:", error);
+      res.status(500).json({ message: "Verification failed" });
+    }
+  });
+
+  // Submit survey for parcel
+  app.post("/api/parcels/:id/survey", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { address, q1Response, q2Response, q3Response } = req.body;
+      
+      const updates: any = {
+        q1Response,
+        q2Response,
+        q3Response,
+        responseDate: new Date(),
+      };
+      
+      // Include address if provided
+      if (address) {
+        updates.address = address;
+      }
+      
+      const parcel = await storage.updateParcel(id, updates);
+      
+      if (!parcel) {
+        return res.status(404).json({ message: "Parcel not found" });
+      }
+      
+      res.json({ success: true, parcel });
+    } catch (error) {
+      console.error("Survey submission error:", error);
+      res.status(500).json({ message: "Failed to submit survey" });
     }
   });
 

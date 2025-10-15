@@ -103,7 +103,7 @@ export default function AdminPage() {
 
   const filteredParcels = parcels.filter(
     (parcel) =>
-      parcel.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (parcel.address || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       parcel.codePhrase.toLowerCase().includes(searchTerm.toLowerCase()) ||
       parcel.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -164,6 +164,27 @@ export default function AdminPage() {
         description: error.message,
       });
     },
+  });
+
+  // Load Molin area parcels mutation
+  const loadMolinParcelsMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/admin/load-molin-parcels");
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/parcels"] });
+      toast({
+        title: "Molin area parcels loaded",
+        description: data.message || `Loaded ${data.count} parcels`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Failed to load Molin parcels",
+        description: error.message,
+      });
+    }
   });
 
   // Upload parcels mutation
@@ -437,9 +458,23 @@ export default function AdminPage() {
             <div className="space-y-3">
               <div className="flex gap-3 items-center">
                 <Button
+                  onClick={() => loadMolinParcelsMutation.mutate()}
+                  disabled={loadMolinParcelsMutation.isPending}
+                  variant="default"
+                  data-testid="button-load-molin-parcels"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {loadMolinParcelsMutation.isPending ? "Loading..." : "Load Molin Area Parcels"}
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  Load 1,096 pre-filtered parcels within 500m of Molin Nature Area
+                </p>
+              </div>
+              <div className="flex gap-3 items-center">
+                <Button
                   onClick={() => loadParcelsMutation.mutate()}
                   disabled={loadParcelsMutation.isPending || !settings}
-                  variant="default"
+                  variant="outline"
                   data-testid="button-load-parcels"
                 >
                   <Download className="h-4 w-4 mr-2" />
