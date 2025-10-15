@@ -492,9 +492,9 @@ export default function AdminPage() {
                 </p>
                 <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
                   <li>Load parcels from the pre-prepared GeoJSON file</li>
-                  <li>Create an area centered at Molin Nature Area (42.247891, -83.715445)</li>
+                  <li>Create an area centered at Molin Nature Area (42.248002, -83.715407)</li>
                   <li>Auto-select parcels within 200m of the center</li>
-                  <li>Display all parcels within 1km for admin review</li>
+                  <li>Display all parcels within 5km for admin review</li>
                 </ul>
               </div>
               <Button
@@ -538,6 +538,71 @@ export default function AdminPage() {
                     <MapPin className="h-4 w-4" />
                     <span>Regular polygons show nearby parcels</span>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Area Settings</CardTitle>
+                <CardDescription>Adjust the center point and radius settings for {molinArea?.name}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="area-center-lat">Center Latitude</Label>
+                    <Input
+                      id="area-center-lat"
+                      type="number"
+                      step="0.000001"
+                      value={molinArea?.centerLat || ''}
+                      disabled
+                      className="mt-2"
+                      data-testid="input-area-center-lat"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="area-center-lng">Center Longitude</Label>
+                    <Input
+                      id="area-center-lng"
+                      type="number"
+                      step="0.000001"
+                      value={molinArea?.centerLng || ''}
+                      disabled
+                      className="mt-2"
+                      data-testid="input-area-center-lng"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="selection-radius">Selection Radius (meters)</Label>
+                    <Input
+                      id="selection-radius"
+                      type="number"
+                      value={molinArea?.selectionRadiusMeters || ''}
+                      disabled
+                      className="mt-2"
+                      data-testid="input-selection-radius"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Parcels within this distance are auto-selected</p>
+                  </div>
+                  <div>
+                    <Label htmlFor="display-radius">Display Radius (meters)</Label>
+                    <Input
+                      id="display-radius"
+                      type="number"
+                      value={molinArea?.displayRadiusMeters || ''}
+                      disabled
+                      className="mt-2"
+                      data-testid="input-display-radius"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Parcels within this distance are visible on the admin map</p>
+                  </div>
+                </div>
+                <div className="p-4 bg-muted rounded-md">
+                  <p className="text-sm text-muted-foreground">
+                    <strong>Note:</strong> To change these settings, you need to reinitialize the area or manually update the coordinates in the server configuration. 
+                    The current center is at ({molinArea?.centerLat.toFixed(6)}, {molinArea?.centerLng.toFixed(6)}) with a {molinArea?.displayRadiusMeters}m display radius.
+                  </p>
                 </div>
               </CardContent>
             </Card>

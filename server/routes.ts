@@ -325,10 +325,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fs = await import('fs');
       const path = await import('path');
       
-      const MOLIN_CENTER_LAT = 42.280566;
-      const MOLIN_CENTER_LNG = -83.743475;
+      const MOLIN_CENTER_LAT = 42.248002;
+      const MOLIN_CENTER_LNG = -83.715407;
       const SELECTION_RADIUS = 200; // meters
-      const DISPLAY_RADIUS = 1000; // meters
+      const DISPLAY_RADIUS = 5000; // meters - increased to show parcels farther from center
       
       // Step 1: Load parcels if not already loaded
       const existingParcels = await storage.getAllParcels();
