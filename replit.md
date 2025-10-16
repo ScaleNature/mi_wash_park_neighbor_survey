@@ -8,7 +8,7 @@ The platform features an interactive map displaying property parcels with color-
 
 ## Recent Changes
 
-### October 16, 2025 (Automatic Parcel Loading)
+### October 16, 2025 (Automatic Parcel Loading & Admin Map Fixes)
 - **Simplified Parcel Management**: Removed unnecessary manual loading UI
   - Deleted "Parcel Data" section with "Load Molin Area Parcels" button from admin page
   - Parcels now auto-load from attached_assets/molin_area_parcels.geojson when server starts
@@ -22,6 +22,16 @@ The platform features an interactive map displaying property parcels with color-
   - Parcel Management Table - View and edit parcel details
   
 - **Removed Endpoints**: Deleted POST /api/admin/load-molin-parcels (no longer needed)
+
+- **Parcel Center Calculation**: Added automatic parcel center logging on server startup
+  - Actual parcel center: **42.280566, -83.743475** (use this for area creation)
+  - Center is calculated from all 1,096 loaded parcels for accurate area positioning
+  - This ensures areas are created at the correct location to display parcels
+
+- **Admin Map Legend Cleanup**: Removed survey-related items from admin map view
+  - Legend now hidden in admin mode (only shows for public survey map)
+  - Removed: No Response, Q1 Support, Full Support, Compost Available indicators
+  - Cleaner admin interface focused on area/parcel management
 
 ### October 16, 2025 (Manual Area Management - Final Implementation)
 - **Coordinate Input Streamlining**:
