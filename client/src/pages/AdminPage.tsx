@@ -17,13 +17,12 @@ export default function AdminPage() {
   const [appName, setAppName] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
-  const [centerLat, setCenterLat] = useState('');
-  const [centerLng, setCenterLng] = useState('');
-  const [zoom, setZoom] = useState('');
-  const [areaMode, setAreaMode] = useState<'center' | 'bbox'>('center');
-  const [radiusMeters, setRadiusMeters] = useState('');
-  const [bboxTopLeft, setBboxTopLeft] = useState('');
-  const [bboxBottomRight, setBboxBottomRight] = useState('');
+  const [selectedAreaId, setSelectedAreaId] = useState<string>('');
+  const [areaCenterLat, setAreaCenterLat] = useState('');
+  const [areaCenterLng, setAreaCenterLng] = useState('');
+  const [areaZoom, setAreaZoom] = useState('');
+  const [areaSelectionRadius, setAreaSelectionRadius] = useState('');
+  const [areaDisplayRadius, setAreaDisplayRadius] = useState('');
   const { toast } = useToast();
 
   // Check admin session
@@ -71,15 +70,27 @@ export default function AdminPage() {
     if (settings) {
       setAppName(settings.appName || '');
       setAdminEmail(settings.adminEmail || '');
-      setCenterLat(settings.centerLat?.toString() || '');
-      setCenterLng(settings.centerLng?.toString() || '');
-      setZoom(settings.defaultZoom?.toString() || '');
-      setAreaMode((settings.areaMode as 'center' | 'bbox') || 'center');
-      setRadiusMeters(settings.radiusMeters?.toString() || '');
-      setBboxTopLeft(settings.boundingBoxTopLeft || '');
-      setBboxBottomRight(settings.boundingBoxBottomRight || '');
     }
   }, [settings]);
+
+  // Auto-select first area when areas load
+  useEffect(() => {
+    if (areas.length > 0 && !selectedAreaId) {
+      setSelectedAreaId(areas[0].id);
+    }
+  }, [areas, selectedAreaId]);
+
+  // Load area settings when selected area changes
+  useEffect(() => {
+    const selectedArea = areas.find(a => a.id === selectedAreaId);
+    if (selectedArea) {
+      setAreaCenterLat(selectedArea.centerLat.toString());
+      setAreaCenterLng(selectedArea.centerLng.toString());
+      setAreaZoom(settings?.defaultZoom?.toString() || '16');
+      setAreaSelectionRadius(selectedArea.selectionRadiusMeters.toString());
+      setAreaDisplayRadius(selectedArea.displayRadiusMeters.toString());
+    }
+  }, [selectedAreaId, areas, settings]);
 
   // Logout mutation
   const logoutMutation = useMutation({
@@ -120,10 +131,6 @@ export default function AdminPage() {
     const settingsData: any = {
       appName,
       adminEmail,
-      centerLat: parseFloat(centerLat),
-      centerLng: parseFloat(centerLng),
-      defaultZoom: parseFloat(zoom),
-      areaMode,
     };
 
     // Only include password if it's been changed
@@ -131,23 +138,43 @@ export default function AdminPage() {
       settingsData.adminPassword = adminPassword;
     }
 
-    // Include area-specific fields based on mode
-    if (areaMode === 'center') {
-      const radiusValue = radiusMeters ? parseFloat(radiusMeters) : null;
-      settingsData.radiusMeters = radiusValue && !isNaN(radiusValue) ? radiusValue : null;
-      settingsData.boundingBoxTopLeft = null;
-      settingsData.boundingBoxBottomRight = null;
-    } else {
-      settingsData.radiusMeters = null;
-      settingsData.boundingBoxTopLeft = bboxTopLeft || null;
-      settingsData.boundingBoxBottomRight = bboxBottomRight || null;
-    }
-
     updateSettingsMutation.mutate(settingsData);
   };
 
   const handleLogout = () => {
     logoutMutation.mutate();
+  };
+
+  // Update area settings mutation
+  const updateAreaMutation = useMutation({
+    mutationFn: async (data: any) => {
+      if (!selectedAreaId) throw new Error("No area selected");
+      return await apiRequest("PATCH", `/api/admin/areas/${selectedAreaId}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/areas"] });
+      toast({
+        title: "Area settings saved",
+        description: "Area settings have been updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Save failed",
+        description: error.message || "Failed to save area settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSaveAreaSettings = () => {
+    const areaData = {
+      centerLat: parseFloat(areaCenterLat),
+      centerLng: parseFloat(areaCenterLng),
+      selectionRadiusMeters: parseFloat(areaSelectionRadius),
+      displayRadiusMeters: parseFloat(areaDisplayRadius),
+    };
+    updateAreaMutation.mutate(areaData);
   };
 
   // Initialize Molin Area mutation
@@ -324,7 +351,7 @@ export default function AdminPage() {
         <Card>
           <CardHeader>
             <CardTitle>Application Settings</CardTitle>
-            <CardDescription>Configure the application name, admin credentials, and default map view</CardDescription>
+            <CardDescription>Configure the application name and admin credentials</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -362,112 +389,6 @@ export default function AdminPage() {
                 data-testid="input-admin-password-setting"
               />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="center-lat">Default Center Latitude</Label>
-                <Input
-                  id="center-lat"
-                  value={centerLat}
-                  onChange={(e) => setCenterLat(e.target.value)}
-                  className="mt-2"
-                  placeholder="42.2808"
-                  data-testid="input-center-lat"
-                />
-              </div>
-              <div>
-                <Label htmlFor="center-lng">Default Center Longitude</Label>
-                <Input
-                  id="center-lng"
-                  value={centerLng}
-                  onChange={(e) => setCenterLng(e.target.value)}
-                  className="mt-2"
-                  placeholder="-83.7430"
-                  data-testid="input-center-lng"
-                />
-              </div>
-              <div>
-                <Label htmlFor="zoom">Default Zoom Level</Label>
-                <Input
-                  id="zoom"
-                  value={zoom}
-                  onChange={(e) => setZoom(e.target.value)}
-                  className="mt-2"
-                  placeholder="16"
-                  data-testid="input-zoom"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <Label className="text-base">Area Definition (click map to copy coordinates)</Label>
-                <p className="text-sm text-muted-foreground mb-3">Define the geographic area for parcel identification</p>
-                <div className="flex gap-4 mb-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      value="center"
-                      checked={areaMode === 'center'}
-                      onChange={(e) => setAreaMode(e.target.value as 'center' | 'bbox')}
-                      className="w-4 h-4"
-                      data-testid="radio-area-center"
-                    />
-                    <span>Center + Radius</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      value="bbox"
-                      checked={areaMode === 'bbox'}
-                      onChange={(e) => setAreaMode(e.target.value as 'center' | 'bbox')}
-                      className="w-4 h-4"
-                      data-testid="radio-area-bbox"
-                    />
-                    <span>Bounding Box</span>
-                  </label>
-                </div>
-              </div>
-
-              {areaMode === 'center' ? (
-                <div>
-                  <Label htmlFor="radius">Radius (meters)</Label>
-                  <Input
-                    id="radius"
-                    value={radiusMeters}
-                    onChange={(e) => setRadiusMeters(e.target.value)}
-                    className="mt-2"
-                    placeholder="500"
-                    data-testid="input-radius"
-                  />
-                  <p className="text-sm text-muted-foreground mt-1">Distance from center point in meters</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="bbox-top-left">Top-Left Corner (lat, lng)</Label>
-                    <Input
-                      id="bbox-top-left"
-                      value={bboxTopLeft}
-                      onChange={(e) => setBboxTopLeft(e.target.value)}
-                      className="mt-2"
-                      placeholder="42.2820, -83.7440"
-                      data-testid="input-bbox-top-left"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="bbox-bottom-right">Bottom-Right Corner (lat, lng)</Label>
-                    <Input
-                      id="bbox-bottom-right"
-                      value={bboxBottomRight}
-                      onChange={(e) => setBboxBottomRight(e.target.value)}
-                      className="mt-2"
-                      placeholder="42.2800, -83.7420"
-                      data-testid="input-bbox-bottom-right"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
             <Button
               onClick={handleSaveSettings}
               disabled={updateSettingsMutation.isPending || settingsLoading}
@@ -478,6 +399,110 @@ export default function AdminPage() {
             </Button>
           </CardContent>
         </Card>
+
+        {areas.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Area Management</CardTitle>
+              <CardDescription>Select and configure nature area settings</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="area-select">Select Area</Label>
+                <select
+                  id="area-select"
+                  value={selectedAreaId}
+                  onChange={(e) => setSelectedAreaId(e.target.value)}
+                  className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2"
+                  data-testid="select-area"
+                >
+                  {areas.map(area => (
+                    <option key={area.id} value={area.id}>{area.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedAreaId && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="area-center-lat">Center Latitude</Label>
+                      <Input
+                        id="area-center-lat"
+                        type="number"
+                        step="0.000001"
+                        value={areaCenterLat}
+                        onChange={(e) => setAreaCenterLat(e.target.value)}
+                        className="mt-2"
+                        data-testid="input-area-center-lat"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="area-center-lng">Center Longitude</Label>
+                      <Input
+                        id="area-center-lng"
+                        type="number"
+                        step="0.000001"
+                        value={areaCenterLng}
+                        onChange={(e) => setAreaCenterLng(e.target.value)}
+                        className="mt-2"
+                        data-testid="input-area-center-lng"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="area-zoom">Default Zoom Level</Label>
+                      <Input
+                        id="area-zoom"
+                        type="number"
+                        value={areaZoom}
+                        onChange={(e) => setAreaZoom(e.target.value)}
+                        className="mt-2"
+                        placeholder="16"
+                        data-testid="input-area-zoom"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="selection-radius">Selection Radius (meters)</Label>
+                      <Input
+                        id="selection-radius"
+                        type="number"
+                        value={areaSelectionRadius}
+                        onChange={(e) => setAreaSelectionRadius(e.target.value)}
+                        className="mt-2"
+                        data-testid="input-selection-radius"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Parcels within this distance are auto-selected</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="display-radius">Display Radius (meters)</Label>
+                      <Input
+                        id="display-radius"
+                        type="number"
+                        value={areaDisplayRadius}
+                        onChange={(e) => setAreaDisplayRadius(e.target.value)}
+                        className="mt-2"
+                        data-testid="input-display-radius"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Parcels within this distance are shown on map</p>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={handleSaveAreaSettings}
+                    disabled={updateAreaMutation.isPending}
+                    data-testid="button-save-area-settings"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {updateAreaMutation.isPending ? "Saving..." : "Save Area Settings"}
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {areas.length === 0 ? (
           <Card>
@@ -538,71 +563,6 @@ export default function AdminPage() {
                     <MapPin className="h-4 w-4" />
                     <span>Regular polygons show nearby parcels</span>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Area Settings</CardTitle>
-                <CardDescription>Adjust the center point and radius settings for {molinArea?.name}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="area-center-lat">Center Latitude</Label>
-                    <Input
-                      id="area-center-lat"
-                      type="number"
-                      step="0.000001"
-                      value={molinArea?.centerLat || ''}
-                      disabled
-                      className="mt-2"
-                      data-testid="input-area-center-lat"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="area-center-lng">Center Longitude</Label>
-                    <Input
-                      id="area-center-lng"
-                      type="number"
-                      step="0.000001"
-                      value={molinArea?.centerLng || ''}
-                      disabled
-                      className="mt-2"
-                      data-testid="input-area-center-lng"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="selection-radius">Selection Radius (meters)</Label>
-                    <Input
-                      id="selection-radius"
-                      type="number"
-                      value={molinArea?.selectionRadiusMeters || ''}
-                      disabled
-                      className="mt-2"
-                      data-testid="input-selection-radius"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Parcels within this distance are auto-selected</p>
-                  </div>
-                  <div>
-                    <Label htmlFor="display-radius">Display Radius (meters)</Label>
-                    <Input
-                      id="display-radius"
-                      type="number"
-                      value={molinArea?.displayRadiusMeters || ''}
-                      disabled
-                      className="mt-2"
-                      data-testid="input-display-radius"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Parcels within this distance are visible on the admin map</p>
-                  </div>
-                </div>
-                <div className="p-4 bg-muted rounded-md">
-                  <p className="text-sm text-muted-foreground">
-                    <strong>Note:</strong> To change these settings, you need to reinitialize the area or manually update the coordinates in the server configuration. 
-                    The current center is at ({molinArea?.centerLat.toFixed(6)}, {molinArea?.centerLng.toFixed(6)}) with a {molinArea?.displayRadiusMeters}m display radius.
-                  </p>
                 </div>
               </CardContent>
             </Card>
