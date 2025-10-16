@@ -239,6 +239,74 @@ export class DbStorage implements IStorage {
     let count = 0;
     const batchSize = 100;
     
+    // Helper: Detect CRS by checking representative points
+    const detectCRS = (coords: number[][]): 'EPSG:2898' | 'EPSG:4326' => {
+      // Sample first few points to detect coordinate system
+      const samplePoints = coords.slice(0, Math.min(5, coords.length));
+      const avgX = samplePoints.reduce((sum, p) => sum + Math.abs(p[0]), 0) / samplePoints.length;
+      
+      // State Plane Michigan South: X (easting) ~ 13,000,000-14,000,000 feet, Y (northing) ~ 0-1,000,000 feet
+      // WGS84: longitude ~ -180 to 180, latitude ~ -90 to 90
+      // Robust threshold: if avg |x| > 1000, it's State Plane
+      return avgX > 1000 ? 'EPSG:2898' : 'EPSG:4326';
+    };
+    
+    // Helper: Transform a single ring of coordinates
+    const transformRing = (ring: number[][], sourceCRS: string): number[] [] => {
+      if (sourceCRS === 'EPSG:4326') {
+        // Already WGS84 - return as-is
+        return ring.map(p => [p[0], p[1]]);
+      }
+      
+      // Transform from State Plane to WGS84
+      return ring.map(point => {
+        try {
+          const [lng, lat] = proj4('EPSG:2898', 'EPSG:4326', [point[0], point[1]]);
+          return [lng, lat];
+        } catch (e) {
+          console.warn(`Failed to transform point [${point[0]}, ${point[1]}]:`, e);
+          return point; // Fallback
+        }
+      });
+    };
+    
+    // Helper: Transform geometry (handles Polygon and MultiPolygon with all rings)
+    const transformGeometry = (geom: any): any => {
+      if (!geom || !geom.type || !geom.coordinates) {
+        return geom;
+      }
+      
+      if (geom.type === 'Polygon') {
+        // Detect CRS from outer ring
+        const sourceCRS = detectCRS(geom.coordinates[0]);
+        
+        // Transform all rings (outer + holes)
+        const transformedRings = geom.coordinates.map((ring: number[][]) => 
+          transformRing(ring, sourceCRS)
+        );
+        
+        return {
+          type: 'Polygon',
+          coordinates: transformedRings
+        };
+      } else if (geom.type === 'MultiPolygon') {
+        // Transform each polygon in the MultiPolygon
+        const transformedPolygons = geom.coordinates.map((polygonRings: number[][][]) => {
+          const sourceCRS = detectCRS(polygonRings[0]); // Detect from first ring
+          return polygonRings.map((ring: number[][]) => transformRing(ring, sourceCRS));
+        });
+        
+        return {
+          type: 'MultiPolygon',
+          coordinates: transformedPolygons
+        };
+      }
+      
+      // Unsupported geometry type - return as-is
+      console.warn(`Unsupported geometry type: ${geom.type}`);
+      return geom;
+    };
+    
     for (let i = 0; i < features.length; i += batchSize) {
       const batch = features.slice(i, i + batchSize);
       const parcelsToInsert = [];
@@ -247,37 +315,41 @@ export class DbStorage implements IStorage {
         const properties = feature.properties || {};
         const originalGeometry = feature.geometry;
         
-        let convertedGeometry = null;
-        if (originalGeometry && originalGeometry.type === 'Polygon' && originalGeometry.coordinates && originalGeometry.coordinates[0]) {
-          const convertedRing = originalGeometry.coordinates[0].map((point: number[]) => {
-            try {
-              // proj4 returns [longitude, latitude] for EPSG:4326, which is the GeoJSON standard
-              const [lng, lat] = proj4('EPSG:2898', 'EPSG:4326', [point[0], point[1]]);
-              return [lng, lat];
-            } catch (e) {
-              return point;
-            }
-          });
-          
-          convertedGeometry = {
-            type: 'Polygon',
-            coordinates: [convertedRing]
-          };
-        } else {
-          convertedGeometry = originalGeometry;
-        }
+        // Transform geometry (handles all types and rings)
+        const convertedGeometry = transformGeometry(originalGeometry);
         
         let parcelId;
         if (convertedGeometry && convertedGeometry.type === 'Polygon' && convertedGeometry.coordinates && convertedGeometry.coordinates[0]) {
           const ring = convertedGeometry.coordinates[0];
+          
+          // Calculate centroid excluding duplicate closing vertex
+          // GeoJSON rings have first point == last point, so exclude last point
+          const uniquePoints = ring.slice(0, -1);
           let sumLat = 0, sumLng = 0;
-          ring.forEach((point: number[]) => {
-            sumLng += point[0];
+          uniquePoints.forEach((point: number[]) => {
+            sumLng += point[0];  // GeoJSON: [lng, lat]
             sumLat += point[1];
           });
-          const centroidLng = sumLng / ring.length;
-          const centroidLat = sumLat / ring.length;
+          const centroidLng = sumLng / uniquePoints.length;
+          const centroidLat = sumLat / uniquePoints.length;
           parcelId = `${centroidLat.toFixed(6)},${centroidLng.toFixed(6)}-${count}`;
+        } else if (convertedGeometry && convertedGeometry.type === 'MultiPolygon') {
+          // For MultiPolygon, use centroid of first polygon
+          const firstPolygon = convertedGeometry.coordinates[0];
+          if (firstPolygon && firstPolygon[0]) {
+            const ring = firstPolygon[0];
+            const uniquePoints = ring.slice(0, -1);
+            let sumLat = 0, sumLng = 0;
+            uniquePoints.forEach((point: number[]) => {
+              sumLng += point[0];
+              sumLat += point[1];
+            });
+            const centroidLng = sumLng / uniquePoints.length;
+            const centroidLat = sumLat / uniquePoints.length;
+            parcelId = `${centroidLat.toFixed(6)},${centroidLng.toFixed(6)}-${count}`;
+          } else {
+            parcelId = `multipolygon-unknown-${count}`;
+          }
         } else {
           parcelId = `unknown-${count}`;
         }

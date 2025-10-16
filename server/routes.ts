@@ -262,15 +262,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return false;
         }
         
-        // Calculate parcel centroid
+        // Calculate parcel centroid (excluding duplicate closing vertex)
         const ring = geom.coordinates[0];
+        const uniquePoints = ring.slice(0, -1); // Remove duplicate closing point
         let sumLat = 0, sumLng = 0;
-        ring.forEach((point: number[]) => {
+        uniquePoints.forEach((point: number[]) => {
           sumLng += point[0];  // GeoJSON: point[0] is longitude
           sumLat += point[1];  // GeoJSON: point[1] is latitude
         });
-        const centroidLat = sumLat / ring.length;
-        const centroidLng = sumLng / ring.length;
+        const centroidLat = sumLat / uniquePoints.length;
+        const centroidLng = sumLng / uniquePoints.length;
         
         // Calculate distance from area center
         const distance = calculateDistance(

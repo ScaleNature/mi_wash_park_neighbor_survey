@@ -63,9 +63,20 @@ Preferred communication style: Simple, everyday language.
 
 **Parcel Management**: 
 - Each parcel has a unique ID, address, GeoJSON coordinates, and a nature-themed code phrase for access control
-- System handles full dataset of 126,639 parcels from locked `washtenaw_parcels_full.geojson` file
+- System handles full dataset of **126,639 parcels** from locked `washtenaw_parcels_full.geojson` file
 - Parcels auto-load from GeoJSON on server startup and stored in database
-- Coordinates converted from State Plane Michigan South (EPSG:2898) to WGS84 (lat/lng) using proj4
+- **CRITICAL: Mixed Coordinate Systems in Source Data**:
+  - The `washtenaw_parcels_full.geojson` file contains MIXED coordinate systems
+  - Some parcels are already in WGS84 lat/lng format (coordinates < 100)
+  - Other parcels are in State Plane Michigan South EPSG:2898 format (coordinates > 1000)
+  - Transformation logic detects format by coordinate magnitude: |x| > 1000 indicates State Plane
+  - State Plane coordinates are transformed using proj4 to WGS84
+  - Already-WGS84 coordinates are preserved as-is
+- **Coordinate Format Standards**:
+  - GeoJSON standard: [longitude, latitude] order
+  - Leaflet expects: [latitude, longitude] order  
+  - Database stores GeoJSON with [lng, lat] format
+  - Map components must handle coordinate order conversion
 - Server-side parcel filtering by radius for performance
 - Survey data stored directly on parcel records (q1_response, q2_response, q3_response)
 
