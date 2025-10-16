@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import bcrypt from "bcrypt";
 import fs from "fs";
 import path from "path";
+import proj4 from "proj4";
 
 const SALT_ROUNDS = 10;
 
@@ -76,23 +77,47 @@ export class MemStorage implements IStorage {
 
   private initializeParcels(): void {
     try {
-      const geojsonPath = path.join(process.cwd(), 'attached_assets', 'molin_area_parcels.geojson');
+      const geojsonPath = path.join(process.cwd(), 'attached_assets', 'washtenaw_parcels_full.geojson');
       
       if (fs.existsSync(geojsonPath)) {
         const geojsonData = fs.readFileSync(geojsonPath, 'utf-8');
         const geojson = JSON.parse(geojsonData);
+        
+        // Define State Plane Michigan South (EPSG:2898) projection
+        proj4.defs('EPSG:2898', '+proj=lcc +lat_1=42.1 +lat_2=43.66666666666666 +lat_0=41.5 +lon_0=-84.36666666666666 +x_0=4000000 +y_0=0 +ellps=GRS80 +units=us-ft +no_defs');
         
         if (geojson.type === 'FeatureCollection' && Array.isArray(geojson.features)) {
           // Load parcels synchronously during initialization
           let count = 0;
           for (const feature of geojson.features) {
             const properties = feature.properties || {};
-            const geometry = feature.geometry;
+            const originalGeometry = feature.geometry;
             
-            // Generate a stable parcel ID based on geometry centroid + index for uniqueness
+            // Convert geometry from State Plane to WGS84 lat/lng
+            let convertedGeometry = null;
+            if (originalGeometry && originalGeometry.type === 'Polygon' && originalGeometry.coordinates && originalGeometry.coordinates[0]) {
+              const convertedRing = originalGeometry.coordinates[0].map((point: number[]) => {
+                try {
+                  // Convert from State Plane (EPSG:2898) to WGS84 (EPSG:4326)
+                  const [lng, lat] = proj4('EPSG:2898', 'EPSG:4326', [point[0], point[1]]);
+                  return [lng, lat];
+                } catch (e) {
+                  return point; // If conversion fails, keep original
+                }
+              });
+              
+              convertedGeometry = {
+                type: 'Polygon',
+                coordinates: [convertedRing]
+              };
+            } else {
+              convertedGeometry = originalGeometry;
+            }
+            
+            // Generate a stable parcel ID based on converted geometry centroid + index for uniqueness
             let parcelId;
-            if (geometry && geometry.type === 'Polygon' && geometry.coordinates && geometry.coordinates[0]) {
-              const ring = geometry.coordinates[0];
+            if (convertedGeometry && convertedGeometry.type === 'Polygon' && convertedGeometry.coordinates && convertedGeometry.coordinates[0]) {
+              const ring = convertedGeometry.coordinates[0];
               let sumLat = 0, sumLng = 0;
               ring.forEach((point: number[]) => {
                 sumLng += point[0];
@@ -112,7 +137,7 @@ export class MemStorage implements IStorage {
               id: parcelId,
               address: null,
               codePhrase,
-              geometry,
+              geometry: convertedGeometry,
               q1Response: null,
               q2Response: null,
               q3Response: null,
