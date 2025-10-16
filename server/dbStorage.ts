@@ -93,7 +93,9 @@ export class DbStorage implements IStorage {
       // Load parcels from GeoJSON file
       const geojsonPath = path.join(process.cwd(), 'attached_assets', 'washtenaw_parcels_full.geojson');
       
-      if (!require('fs').existsSync(geojsonPath)) {
+      try {
+        await fs.access(geojsonPath);
+      } catch {
         console.log("No parcel GeoJSON file found");
         return;
       }

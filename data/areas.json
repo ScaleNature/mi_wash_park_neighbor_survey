@@ -1,5 +1,16 @@
 {
-  "areas": [],
+  "areas": [
+    {
+      "id": "08d9e9d1-59df-47d8-8cd9-2f1b7d05c36f",
+      "name": "Molin Nature Area",
+      "centerLat": 42.247982,
+      "centerLng": -83.715442,
+      "defaultZoom": 16,
+      "displayRadiusMeters": 300,
+      "parcelIds": [],
+      "createdAt": "2025-10-16T19:59:21.590Z"
+    }
+  ],
   "version": "1.0",
   "description": "Area definitions for Molin Nature Area Neighborhood Support. Edit only in development environment."
 }
