@@ -213,36 +213,38 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
                 }
               } : undefined}
             >
-            <Popup>
-              <div className="p-2 space-y-2" data-testid={`popup-parcel-${parcel.id}`}>
-                <div>
-                  {parcel.address && <p className="font-semibold">{parcel.address}</p>}
-                  <p className="text-xs font-mono text-muted-foreground" data-testid={`text-parcel-id-${parcel.id}`}>
-                    ID: {parcel.id}
-                  </p>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Status: {parcel.status === 'none' ? 'No response' : parcel.status === 'light-green' ? 'Q1 Support' : 'Full Support'}
-                </p>
-                {parcel.hasCompost && (
-                  <div className="flex items-center gap-1 text-sm text-primary">
-                    <Trash2 className="h-4 w-4" />
-                    <span>Compost bin available</span>
+            {!adminMode && (
+              <Popup>
+                <div className="p-2 space-y-2" data-testid={`popup-parcel-${parcel.id}`}>
+                  <div>
+                    {parcel.address && <p className="font-semibold">{parcel.address}</p>}
+                    <p className="text-xs font-mono text-muted-foreground" data-testid={`text-parcel-id-${parcel.id}`}>
+                      ID: {parcel.id}
+                    </p>
                   </div>
-                )}
-                <Link href="/survey">
-                  <Button 
-                    size="sm" 
-                    variant="default" 
-                    className="w-full mt-1"
-                    data-testid={`button-survey-link-${parcel.id}`}
-                  >
-                    <ExternalLink className="h-3 w-3 mr-1" />
-                    Go to Survey
-                  </Button>
-                </Link>
-              </div>
-            </Popup>
+                  <p className="text-sm text-muted-foreground">
+                    Status: {parcel.status === 'none' ? 'No response' : parcel.status === 'light-green' ? 'Q1 Support' : 'Full Support'}
+                  </p>
+                  {parcel.hasCompost && (
+                    <div className="flex items-center gap-1 text-sm text-primary">
+                      <Trash2 className="h-4 w-4" />
+                      <span>Compost bin available</span>
+                    </div>
+                  )}
+                  <Link href="/survey">
+                    <Button 
+                      size="sm" 
+                      variant="default" 
+                      className="w-full mt-1"
+                      data-testid={`button-survey-link-${parcel.id}`}
+                    >
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      Go to Survey
+                    </Button>
+                  </Link>
+                </div>
+              </Popup>
+            )}
           </Polygon>
           );
         }
