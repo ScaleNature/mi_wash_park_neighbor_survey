@@ -21,7 +21,6 @@ export default function AdminPage() {
   const [areaCenterLat, setAreaCenterLat] = useState('');
   const [areaCenterLng, setAreaCenterLng] = useState('');
   const [areaZoom, setAreaZoom] = useState('');
-  const [areaSelectionRadius, setAreaSelectionRadius] = useState('');
   const [areaDisplayRadius, setAreaDisplayRadius] = useState('');
   
   // New area form state
@@ -29,7 +28,6 @@ export default function AdminPage() {
   const [newAreaCenterLat, setNewAreaCenterLat] = useState('');
   const [newAreaCenterLng, setNewAreaCenterLng] = useState('');
   const [newAreaZoom, setNewAreaZoom] = useState('16');
-  const [newAreaSelectionRadius, setNewAreaSelectionRadius] = useState('200');
   const [newAreaDisplayRadius, setNewAreaDisplayRadius] = useState('5000');
   
   const { toast } = useToast();
@@ -96,7 +94,6 @@ export default function AdminPage() {
       setAreaCenterLat(selectedArea.centerLat.toString());
       setAreaCenterLng(selectedArea.centerLng.toString());
       setAreaZoom(selectedArea.defaultZoom.toString());
-      setAreaSelectionRadius(selectedArea.selectionRadiusMeters.toString());
       setAreaDisplayRadius(selectedArea.displayRadiusMeters.toString());
     }
   }, [selectedAreaId, areas]);
@@ -181,7 +178,6 @@ export default function AdminPage() {
       centerLat: parseFloat(areaCenterLat),
       centerLng: parseFloat(areaCenterLng),
       defaultZoom: parseFloat(areaZoom),
-      selectionRadiusMeters: parseFloat(areaSelectionRadius),
       displayRadiusMeters: parseFloat(areaDisplayRadius),
     };
     updateAreaMutation.mutate(areaData);
@@ -199,7 +195,6 @@ export default function AdminPage() {
       setNewAreaCenterLat('');
       setNewAreaCenterLng('');
       setNewAreaZoom('16');
-      setNewAreaSelectionRadius('200');
       setNewAreaDisplayRadius('5000');
       toast({
         title: "Area created",
@@ -221,7 +216,6 @@ export default function AdminPage() {
       centerLat: parseFloat(newAreaCenterLat),
       centerLng: parseFloat(newAreaCenterLng),
       defaultZoom: parseFloat(newAreaZoom),
-      selectionRadiusMeters: parseFloat(newAreaSelectionRadius),
       displayRadiusMeters: parseFloat(newAreaDisplayRadius),
     };
     createAreaMutation.mutate(areaData);
@@ -502,31 +496,17 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="selection-radius">Selection Radius (meters)</Label>
-                    <Input
-                      id="selection-radius"
-                      type="number"
-                      value={areaSelectionRadius}
-                      onChange={(e) => setAreaSelectionRadius(e.target.value)}
-                      className="mt-2"
-                      data-testid="input-selection-radius"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Parcels within this distance are auto-selected</p>
-                  </div>
-                  <div>
-                    <Label htmlFor="display-radius">Display Radius (meters)</Label>
-                    <Input
-                      id="display-radius"
-                      type="number"
-                      value={areaDisplayRadius}
-                      onChange={(e) => setAreaDisplayRadius(e.target.value)}
-                      className="mt-2"
-                      data-testid="input-display-radius"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Parcels within this distance are shown on map</p>
-                  </div>
+                <div>
+                  <Label htmlFor="display-radius">Display Radius (meters)</Label>
+                  <Input
+                    id="display-radius"
+                    type="number"
+                    value={areaDisplayRadius}
+                    onChange={(e) => setAreaDisplayRadius(e.target.value)}
+                    className="mt-2"
+                    data-testid="input-display-radius"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Parcels within this distance are shown on map</p>
                 </div>
 
                 <Button
@@ -596,33 +576,18 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="new-selection-radius">Selection Radius (meters)</Label>
-                  <Input
-                    id="new-selection-radius"
-                    type="number"
-                    value={newAreaSelectionRadius}
-                    onChange={(e) => setNewAreaSelectionRadius(e.target.value)}
-                    className="mt-2"
-                    placeholder="200"
-                    data-testid="input-new-selection-radius"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Parcels within this distance will be auto-selected</p>
-                </div>
-                <div>
-                  <Label htmlFor="new-display-radius">Display Radius (meters)</Label>
-                  <Input
-                    id="new-display-radius"
-                    type="number"
-                    value={newAreaDisplayRadius}
-                    onChange={(e) => setNewAreaDisplayRadius(e.target.value)}
-                    className="mt-2"
-                    placeholder="5000"
-                    data-testid="input-new-display-radius"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Parcels within this distance will be shown on map</p>
-                </div>
+              <div>
+                <Label htmlFor="new-display-radius">Display Radius (meters)</Label>
+                <Input
+                  id="new-display-radius"
+                  type="number"
+                  value={newAreaDisplayRadius}
+                  onChange={(e) => setNewAreaDisplayRadius(e.target.value)}
+                  className="mt-2"
+                  placeholder="5000"
+                  data-testid="input-new-display-radius"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Parcels within this distance will be shown on map</p>
               </div>
 
               <Button
@@ -635,7 +600,6 @@ export default function AdminPage() {
                   isNaN(parseFloat(newAreaCenterLat)) ||
                   isNaN(parseFloat(newAreaCenterLng)) ||
                   isNaN(parseFloat(newAreaZoom)) ||
-                  isNaN(parseFloat(newAreaSelectionRadius)) ||
                   isNaN(parseFloat(newAreaDisplayRadius))
                 }
                 data-testid="button-create-area"
@@ -652,8 +616,7 @@ export default function AdminPage() {
             <CardTitle>Map View</CardTitle>
             <CardDescription>
               {selectedAreaId && selectedArea ? (
-                `Showing ${parcelsInDisplayRadius.length} parcels within ${selectedArea.displayRadiusMeters}m display radius, 
-                ${selectedParcelIds.length} parcels selected within ${selectedArea.selectionRadiusMeters}m`
+                `Showing ${parcelsInDisplayRadius.length} parcels within ${selectedArea.displayRadiusMeters}m display radius, ${selectedParcelIds.length} parcels selected in area`
               ) : (
                 "Select an area to view parcels on the map"
               )}
