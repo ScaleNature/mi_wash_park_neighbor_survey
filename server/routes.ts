@@ -343,38 +343,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Load Molin area parcels from prepared GeoJSON file (protected)
-  app.post("/api/admin/load-molin-parcels", isAdmin, async (req, res) => {
-    try {
-      const fs = await import('fs');
-      const path = await import('path');
-      
-      const filePath = path.join(process.cwd(), 'attached_assets', 'molin_area_parcels.geojson');
-      
-      if (!fs.existsSync(filePath)) {
-        return res.status(404).json({ message: "Molin area parcels file not found" });
-      }
-      
-      const fileContent = fs.readFileSync(filePath, 'utf8');
-      const geojson = JSON.parse(fileContent);
-      
-      if (!geojson.features || !Array.isArray(geojson.features)) {
-        return res.status(400).json({ message: "Invalid GeoJSON format" });
-      }
-      
-      // Load parcels - coordinates are already in lat/lon format
-      const count = await storage.loadParcelsFromGeoJSON(geojson.features);
-      
-      res.json({ 
-        count, 
-        message: `Successfully loaded ${count} parcels from Molin area` 
-      });
-    } catch (error: any) {
-      console.error("Error loading Molin parcels:", error);
-      res.status(500).json({ message: error.message || "Failed to load parcels" });
-    }
-  });
-
   // Initialize Molin Nature Area (protected)
   app.post("/api/admin/initialize-molin-area", isAdmin, async (req, res) => {
     try {
