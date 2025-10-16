@@ -292,6 +292,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Toggle parcel in area (protected)
   app.post("/api/admin/areas/:areaId/parcels/:parcelId/toggle", isAdmin, async (req, res) => {
+    // Only allow parcel assignment in development
+    if (process.env.NODE_ENV !== 'development') {
+      return res.status(403).json({ 
+        message: "Parcel assignment is only allowed in development environment" 
+      });
+    }
+    
     try {
       const { areaId, parcelId } = req.params;
       
@@ -311,6 +318,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create new area (protected)
   app.post("/api/admin/areas", isAdmin, async (req, res) => {
+    // Only allow area creation in development
+    if (process.env.NODE_ENV !== 'development') {
+      return res.status(403).json({ 
+        message: "Area creation is only allowed in development environment" 
+      });
+    }
+    
     try {
       // Validate request body
       const createSchema = z.object({
@@ -339,6 +353,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Update area settings (protected)
   app.patch("/api/admin/areas/:areaId", isAdmin, async (req, res) => {
+    // Only allow area updates in development
+    if (process.env.NODE_ENV !== 'development') {
+      return res.status(403).json({ 
+        message: "Area updates are only allowed in development environment" 
+      });
+    }
+    
     try {
       const { areaId } = req.params;
       

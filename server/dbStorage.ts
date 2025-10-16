@@ -295,9 +295,18 @@ export class DbStorage implements IStorage {
       const fileContent = await fs.readFile(AREAS_FILE_PATH, 'utf-8');
       const data: AreaData = JSON.parse(fileContent);
       this.areaCache = data.areas || [];
+      console.log(`✓ Loaded ${this.areaCache.length} areas from file`);
       return this.areaCache;
-    } catch (error) {
-      console.error("Failed to load areas from file:", error);
+    } catch (error: any) {
+      // In production, failing to load areas is critical - the app can't function
+      if (process.env.NODE_ENV === 'production') {
+        console.error("CRITICAL: Failed to load areas from file in production:", error);
+        throw new Error(`Failed to load area configuration: ${error.message}`);
+      }
+      
+      // In development, log warning but allow empty state for initial setup
+      console.warn("Failed to load areas from file (development mode):", error.message);
+      this.areaCache = [];
       return [];
     }
   }
@@ -308,14 +317,20 @@ export class DbStorage implements IStorage {
       throw new Error("Area modifications are not allowed in production");
     }
 
-    const data: AreaData = {
-      areas,
-      version: "1.0",
-      description: "Area definitions for Molin Nature Area Neighborhood Support. Edit only in development environment."
-    };
+    try {
+      const data: AreaData = {
+        areas,
+        version: "1.0",
+        description: "Area definitions for Molin Nature Area Neighborhood Support. Edit only in development environment."
+      };
 
-    await fs.writeFile(AREAS_FILE_PATH, JSON.stringify(data, null, 2), 'utf-8');
-    this.areaCache = areas;
+      await fs.writeFile(AREAS_FILE_PATH, JSON.stringify(data, null, 2), 'utf-8');
+      this.areaCache = areas;
+      console.log(`✓ Saved ${areas.length} areas to file`);
+    } catch (error: any) {
+      console.error("CRITICAL: Failed to save areas to file:", error);
+      throw new Error(`Failed to save area configuration: ${error.message}`);
+    }
   }
 
   async getAllAreas(): Promise<Area[]> {
