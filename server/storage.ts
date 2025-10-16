@@ -1,6 +1,8 @@
 import { type User, type InsertUser, type AppSettings, type UpdateAppSettings, type Parcel, type InsertParcel, type UpdateParcel, type Area, type InsertArea, type AreaParcel, type InsertAreaParcel } from "@shared/schema";
 import { randomUUID } from "crypto";
 import bcrypt from "bcrypt";
+import fs from "fs";
+import path from "path";
 
 const SALT_ROUNDS = 10;
 
@@ -67,6 +69,68 @@ export class MemStorage implements IStorage {
       boundingBoxBottomRight: null,
       updatedAt: new Date(),
     };
+
+    // Auto-load parcels from GeoJSON file on startup
+    this.initializeParcels();
+  }
+
+  private initializeParcels(): void {
+    try {
+      const geojsonPath = path.join(process.cwd(), 'attached_assets', 'molin_area_parcels.geojson');
+      
+      if (fs.existsSync(geojsonPath)) {
+        const geojsonData = fs.readFileSync(geojsonPath, 'utf-8');
+        const geojson = JSON.parse(geojsonData);
+        
+        if (geojson.type === 'FeatureCollection' && Array.isArray(geojson.features)) {
+          // Load parcels synchronously during initialization
+          let count = 0;
+          for (const feature of geojson.features) {
+            const properties = feature.properties || {};
+            const geometry = feature.geometry;
+            
+            // Generate a stable parcel ID based on geometry centroid
+            let parcelId;
+            if (geometry && geometry.type === 'Polygon' && geometry.coordinates && geometry.coordinates[0]) {
+              const ring = geometry.coordinates[0];
+              let sumLat = 0, sumLng = 0;
+              ring.forEach((point: number[]) => {
+                sumLng += point[0];
+                sumLat += point[1];
+              });
+              const centroidLat = (sumLat / ring.length).toFixed(6);
+              const centroidLng = (sumLng / ring.length).toFixed(6);
+              parcelId = `P${centroidLat}_${centroidLng}`;
+            } else {
+              parcelId = `PARCEL_${String(count + 1).padStart(4, '0')}`;
+            }
+            
+            const codePhrase = this.generateNaturePhrase();
+            
+            const parcel: Parcel = {
+              id: parcelId,
+              address: null,
+              codePhrase,
+              geometry,
+              q1Response: null,
+              q2Response: null,
+              q3Response: null,
+              responseDate: null,
+              createdAt: new Date(),
+            };
+            
+            this.parcels.set(parcelId, parcel);
+            count++;
+          }
+          
+          console.log(`✓ Auto-loaded ${count} parcels from ${geojsonPath}`);
+        }
+      } else {
+        console.log(`⚠ GeoJSON file not found at ${geojsonPath}`);
+      }
+    } catch (error) {
+      console.error('Error loading parcels from GeoJSON:', error);
+    }
   }
 
   private generateNaturePhrase(): string {
