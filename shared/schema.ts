@@ -22,13 +22,6 @@ export const appSettings = pgTable("app_settings", {
   appName: text("app_name").notNull().default("Molin Nature Area Neighborhood Support"),
   adminEmail: text("admin_email").notNull().default("molin.nature.area.care@gmail.com"),
   adminPassword: text("admin_password").notNull(),
-  centerLat: real("center_lat").notNull().default(42.2808),
-  centerLng: real("center_lng").notNull().default(-83.7430),
-  defaultZoom: real("default_zoom").notNull().default(16),
-  areaMode: text("area_mode").default("center"),
-  radiusMeters: real("radius_meters"),
-  boundingBoxTopLeft: text("bounding_box_top_left"),
-  boundingBoxBottomRight: text("bounding_box_bottom_right"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
@@ -71,35 +64,35 @@ export type InsertParcel = z.infer<typeof insertParcelSchema>;
 export type UpdateParcel = z.infer<typeof updateParcelSchema>;
 export type Parcel = typeof parcels.$inferSelect;
 
-export const areas = pgTable("areas", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull().unique(),
-  centerLat: real("center_lat").notNull(),
-  centerLng: real("center_lng").notNull(),
-  defaultZoom: real("default_zoom").notNull().default(16),
-  displayRadiusMeters: real("display_radius_meters").notNull().default(5000),
-  createdAt: timestamp("created_at").defaultNow(),
+// Area types for file-based storage (not in database)
+export interface Area {
+  id: string;
+  name: string;
+  centerLat: number;
+  centerLng: number;
+  defaultZoom: number;
+  displayRadiusMeters: number;
+  parcelIds: string[];
+  createdAt?: Date;
+}
+
+export interface AreaData {
+  areas: Area[];
+  version: string;
+  description?: string;
+}
+
+export const areaSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  centerLat: z.number(),
+  centerLng: z.number(),
+  defaultZoom: z.number().default(16),
+  displayRadiusMeters: z.number().default(500),
+  parcelIds: z.array(z.string()).default([]),
+  createdAt: z.date().optional(),
 });
 
-export const insertAreaSchema = createInsertSchema(areas).omit({
-  id: true,
-  createdAt: true,
-});
+export const insertAreaSchema = areaSchema.omit({ id: true, createdAt: true });
 
 export type InsertArea = z.infer<typeof insertAreaSchema>;
-export type Area = typeof areas.$inferSelect;
-
-export const areaParcels = pgTable("area_parcels", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  areaId: varchar("area_id").notNull().references(() => areas.id, { onDelete: "cascade" }),
-  parcelId: varchar("parcel_id").notNull().references(() => parcels.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const insertAreaParcelSchema = createInsertSchema(areaParcels).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type InsertAreaParcel = z.infer<typeof insertAreaParcelSchema>;
-export type AreaParcel = typeof areaParcels.$inferSelect;

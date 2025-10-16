@@ -1,6 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./dbStorage";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import { updateAppSettingsSchema } from "@shared/schema";
@@ -323,7 +323,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const validated = createSchema.parse(req.body);
       
-      const newArea = await storage.createArea(validated);
+      const newArea = await storage.createArea({
+        ...validated,
+        parcelIds: []
+      });
       
       res.json(newArea);
     } catch (error: any) {
@@ -476,7 +479,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: "Molin Nature Area",
           centerLat: MOLIN_CENTER_LAT,
           centerLng: MOLIN_CENTER_LNG,
+          defaultZoom: 16,
           displayRadiusMeters: DISPLAY_RADIUS,
+          parcelIds: []
         });
       }
       
@@ -517,95 +522,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Load parcels from ArcGIS (protected)
+  // Load parcels from ArcGIS (DEPRECATED - no longer supported with file-based areas)
   app.post("/api/admin/load-parcels", isAdmin, async (req, res) => {
-    try {
-      const settings = await storage.getAppSettings();
-      if (!settings) {
-        return res.status(400).json({ message: "Settings not configured" });
-      }
-
-      const { areaMode, centerLat, centerLng, radiusMeters, boundingBoxTopLeft, boundingBoxBottomRight } = settings;
-      console.log("Area settings:", { areaMode, centerLat, centerLng, radiusMeters, boundingBoxTopLeft, boundingBoxBottomRight });
-
-      // Construct ArcGIS query URL
-      // NOTE: This endpoint requires authentication - Washtenaw County ArcGIS services are token-protected
-      // User will need to either:
-      //   1. Obtain an API token from Washtenaw County GIS
-      //   2. Use the downloadable parcel shapefile from https://data-washtenaw.opendata.arcgis.com/
-      //   3. Manually import parcels via CSV
-      const baseUrl = "https://services1.arcgis.com/4ezfu5dIwH83BUNL/ArcGIS/rest/services/tax_parcels/FeatureServer/0/query";
-      const params = new URLSearchParams({
-        f: "json",
-        outFields: "*",
-        returnGeometry: "true",
-        spatialRel: "esriSpatialRelIntersects",
-        outSR: "4326",  // Ensure output is in WGS84
-      });
-
-      // Add spatial filter based on area mode
-      if (areaMode === 'center') {
-        if (!radiusMeters || radiusMeters <= 0) {
-          return res.status(400).json({ message: "Radius must be set and greater than 0 for center mode" });
-        }
-        // Query by center point and radius
-        const geometry = JSON.stringify({
-          x: centerLng,
-          y: centerLat,
-          spatialReference: { wkid: 4326 }
-        });
-        params.append("geometry", geometry);
-        params.append("geometryType", "esriGeometryPoint");
-        params.append("distance", radiusMeters.toString());
-        params.append("units", "esriSRUnit_Meter");
-      } else if (areaMode === 'bbox') {
-        if (!boundingBoxTopLeft || !boundingBoxBottomRight) {
-          return res.status(400).json({ message: "Bounding box corners must be set for bbox mode" });
-        }
-        // Query by bounding box
-        const [topLat, leftLng] = boundingBoxTopLeft.split(',').map(s => parseFloat(s.trim()));
-        const [bottomLat, rightLng] = boundingBoxBottomRight.split(',').map(s => parseFloat(s.trim()));
-        
-        const geometry = JSON.stringify({
-          xmin: leftLng,
-          ymin: bottomLat,
-          xmax: rightLng,
-          ymax: topLat,
-          spatialReference: { wkid: 4326 }
-        });
-        params.append("geometry", geometry);
-        params.append("geometryType", "esriGeometryEnvelope");
-      } else {
-        return res.status(400).json({ message: `Invalid area mode: ${areaMode}. Must be 'center' or 'bbox'` });
-      }
-
-      // Fetch parcels from ArcGIS
-      const queryUrl = `${baseUrl}?${params}`;
-      console.log("ArcGIS Query URL:", queryUrl);
-      
-      const response = await fetch(queryUrl);
-      const data = await response.json();
-      
-      console.log("ArcGIS Response:", JSON.stringify(data).substring(0, 500));
-
-      if (data.error) {
-        console.error("ArcGIS Error:", data.error);
-        return res.status(500).json({ message: `ArcGIS Error: ${data.error.message || 'Unknown error'}` });
-      }
-
-      if (!data.features || data.features.length === 0) {
-        console.log("No parcels found in area");
-        return res.json({ count: 0, message: "No parcels found in the specified area" });
-      }
-
-      // Process and save parcels
-      const count = await storage.loadParcelsFromGeoJSON(data.features);
-
-      res.json({ count, message: `Successfully loaded ${count} parcels` });
-    } catch (error: any) {
-      console.error("Error loading parcels:", error);
-      res.status(500).json({ message: error.message || "Failed to load parcels" });
-    }
+    res.status(410).json({ 
+      message: "ArcGIS import is no longer supported. Parcels are now loaded from GeoJSON files on startup." 
+    });
   });
 
   // Update parcel (protected - admin only)
