@@ -23,6 +23,15 @@ export default function AdminPage() {
   const [areaZoom, setAreaZoom] = useState('');
   const [areaSelectionRadius, setAreaSelectionRadius] = useState('');
   const [areaDisplayRadius, setAreaDisplayRadius] = useState('');
+  
+  // New area form state
+  const [newAreaName, setNewAreaName] = useState('');
+  const [newAreaCenterLat, setNewAreaCenterLat] = useState('');
+  const [newAreaCenterLng, setNewAreaCenterLng] = useState('');
+  const [newAreaZoom, setNewAreaZoom] = useState('16');
+  const [newAreaSelectionRadius, setNewAreaSelectionRadius] = useState('200');
+  const [newAreaDisplayRadius, setNewAreaDisplayRadius] = useState('5000');
+  
   const { toast } = useToast();
 
   // Check admin session
@@ -58,11 +67,11 @@ export default function AdminPage() {
     enabled: !!session?.isAdmin,
   });
 
-  // Get parcels in the first area (if it exists)
-  const molinArea = areas.length > 0 ? areas[0] : null;
+  // Get the selected area
+  const selectedArea = areas.find(a => a.id === selectedAreaId) || null;
   const { data: selectedParcelIds = [] } = useQuery<string[]>({
-    queryKey: ["/api/areas", molinArea?.id, "parcels"],
-    enabled: !!session?.isAdmin && !!molinArea,
+    queryKey: ["/api/areas", selectedAreaId, "parcels"],
+    enabled: !!session?.isAdmin && !!selectedAreaId,
   });
 
   // Load settings into form when fetched
@@ -178,36 +187,55 @@ export default function AdminPage() {
     updateAreaMutation.mutate(areaData);
   };
 
-  // Initialize Molin Area mutation
-  const initializeMolinAreaMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest("POST", "/api/admin/initialize-molin-area");
+  // Create new area mutation
+  const createAreaMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return await apiRequest("POST", "/api/admin/areas", data) as any;
     },
-    onSuccess: (data: any) => {
+    onSuccess: (newArea: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/areas"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/parcels"] });
+      setSelectedAreaId(newArea.id);
+      setNewAreaName('');
+      setNewAreaCenterLat('');
+      setNewAreaCenterLng('');
+      setNewAreaZoom('16');
+      setNewAreaSelectionRadius('200');
+      setNewAreaDisplayRadius('5000');
       toast({
-        title: "Molin Nature Area initialized",
-        description: `Loaded ${data.parcelCount} parcels, ${data.selectedCount} within 200m selection area`,
+        title: "Area created",
+        description: `${newArea.name} has been created successfully`,
       });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       toast({
+        title: "Failed to create area",
+        description: error.message || "Failed to create area",
         variant: "destructive",
-        title: "Failed to initialize Molin Area",
-        description: error.message,
       });
-    }
+    },
   });
+
+  const handleCreateArea = () => {
+    const areaData = {
+      name: newAreaName,
+      centerLat: parseFloat(newAreaCenterLat),
+      centerLng: parseFloat(newAreaCenterLng),
+      defaultZoom: parseFloat(newAreaZoom),
+      selectionRadiusMeters: parseFloat(newAreaSelectionRadius),
+      displayRadiusMeters: parseFloat(newAreaDisplayRadius),
+    };
+    createAreaMutation.mutate(areaData);
+  };
+
 
   // Toggle parcel in/out of area mutation
   const toggleParcelMutation = useMutation({
     mutationFn: async (parcelId: string) => {
-      if (!molinArea) throw new Error("No area selected");
-      return await apiRequest("POST", `/api/admin/areas/${molinArea.id}/parcels/${parcelId}/toggle`);
+      if (!selectedAreaId) throw new Error("No area selected");
+      return await apiRequest("POST", `/api/admin/areas/${selectedAreaId}/parcels/${parcelId}/toggle`);
     },
     onSuccess: (data: any, parcelId: string) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/areas", molinArea?.id, "parcels"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/areas", selectedAreaId, "parcels"] });
       toast({
         title: data.inArea ? "Parcel added to area" : "Parcel removed from area",
         description: `Parcel ${parcelId} ${data.inArea ? 'is now' : 'is no longer'} in the Molin Nature Area`,
@@ -265,18 +293,18 @@ export default function AdminPage() {
   };
 
   // Filter parcels within display radius
-  const parcelsInDisplayRadius = molinArea ? parcels.filter(parcel => {
+  const parcelsInDisplayRadius = selectedArea ? parcels.filter(parcel => {
     const centroid = getParcelCentroid(parcel.geometry);
     if (!centroid) return false;
     
     const distance = calculateDistance(
-      molinArea.centerLat,
-      molinArea.centerLng,
+      selectedArea.centerLat,
+      selectedArea.centerLng,
       centroid.lat,
       centroid.lng
     );
     
-    return distance <= molinArea.displayRadiusMeters;
+    return distance <= selectedArea.displayRadiusMeters;
   }) : [];
 
   // Convert parcels for map display
@@ -289,7 +317,12 @@ export default function AdminPage() {
   }));
 
   // Convert full Parcels to ParcelAdmin for the table
-  const adminParcels: ParcelAdmin[] = parcels.map(parcel => {
+  // Only show parcels that are in the selected area
+  const parcelsToShow = selectedAreaId 
+    ? parcels.filter(p => selectedParcelIds.includes(p.id))
+    : [];
+    
+  const adminParcels: ParcelAdmin[] = parcelsToShow.map(parcel => {
     const hasQ1 = parcel.q1Response === true;
     const hasQ2 = parcel.q2Response === true;
     
@@ -401,15 +434,17 @@ export default function AdminPage() {
           </CardContent>
         </Card>
 
-        {areas.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Area Management</CardTitle>
-              <CardDescription>Select and configure nature area settings</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Area Management</CardTitle>
+            <CardDescription>
+              {areas.length > 0 ? "Select an area to manage or create a new one" : "Create your first nature area"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {areas.length > 0 && (
               <div>
-                <Label htmlFor="area-select">Select Area</Label>
+                <Label htmlFor="area-select">Select Existing Area</Label>
                 <select
                   id="area-select"
                   value={selectedAreaId}
@@ -417,178 +452,259 @@ export default function AdminPage() {
                   className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2"
                   data-testid="select-area"
                 >
+                  <option value="">-- No area selected --</option>
                   {areas.map(area => (
                     <option key={area.id} value={area.id}>{area.name}</option>
                   ))}
                 </select>
               </div>
+            )}
 
-              {selectedAreaId && (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="area-center-lat">Center Latitude</Label>
-                      <Input
-                        id="area-center-lat"
-                        type="number"
-                        step="0.000001"
-                        value={areaCenterLat}
-                        onChange={(e) => setAreaCenterLat(e.target.value)}
-                        className="mt-2"
-                        data-testid="input-area-center-lat"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="area-center-lng">Center Longitude</Label>
-                      <Input
-                        id="area-center-lng"
-                        type="number"
-                        step="0.000001"
-                        value={areaCenterLng}
-                        onChange={(e) => setAreaCenterLng(e.target.value)}
-                        className="mt-2"
-                        data-testid="input-area-center-lng"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="area-zoom">Default Zoom Level</Label>
-                      <Input
-                        id="area-zoom"
-                        type="number"
-                        value={areaZoom}
-                        onChange={(e) => setAreaZoom(e.target.value)}
-                        className="mt-2"
-                        placeholder="16"
-                        data-testid="input-area-zoom"
-                      />
-                    </div>
+            {selectedAreaId && (
+              <div className="space-y-4 pt-4 border-t">
+                <h3 className="font-medium">Edit Selected Area</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="area-center-lat">Center Latitude</Label>
+                    <Input
+                      id="area-center-lat"
+                      type="number"
+                      step="0.000001"
+                      value={areaCenterLat}
+                      onChange={(e) => setAreaCenterLat(e.target.value)}
+                      className="mt-2"
+                      data-testid="input-area-center-lat"
+                    />
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="selection-radius">Selection Radius (meters)</Label>
-                      <Input
-                        id="selection-radius"
-                        type="number"
-                        value={areaSelectionRadius}
-                        onChange={(e) => setAreaSelectionRadius(e.target.value)}
-                        className="mt-2"
-                        data-testid="input-selection-radius"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">Parcels within this distance are auto-selected</p>
-                    </div>
-                    <div>
-                      <Label htmlFor="display-radius">Display Radius (meters)</Label>
-                      <Input
-                        id="display-radius"
-                        type="number"
-                        value={areaDisplayRadius}
-                        onChange={(e) => setAreaDisplayRadius(e.target.value)}
-                        className="mt-2"
-                        data-testid="input-display-radius"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">Parcels within this distance are shown on map</p>
-                    </div>
+                  <div>
+                    <Label htmlFor="area-center-lng">Center Longitude</Label>
+                    <Input
+                      id="area-center-lng"
+                      type="number"
+                      step="0.000001"
+                      value={areaCenterLng}
+                      onChange={(e) => setAreaCenterLng(e.target.value)}
+                      className="mt-2"
+                      data-testid="input-area-center-lng"
+                    />
                   </div>
+                  <div>
+                    <Label htmlFor="area-zoom">Default Zoom Level</Label>
+                    <Input
+                      id="area-zoom"
+                      type="number"
+                      value={areaZoom}
+                      onChange={(e) => setAreaZoom(e.target.value)}
+                      className="mt-2"
+                      placeholder="16"
+                      data-testid="input-area-zoom"
+                    />
+                  </div>
+                </div>
 
-                  <Button
-                    onClick={handleSaveAreaSettings}
-                    disabled={updateAreaMutation.isPending}
-                    data-testid="button-save-area-settings"
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    {updateAreaMutation.isPending ? "Saving..." : "Save Area Settings"}
-                  </Button>
-                </>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="selection-radius">Selection Radius (meters)</Label>
+                    <Input
+                      id="selection-radius"
+                      type="number"
+                      value={areaSelectionRadius}
+                      onChange={(e) => setAreaSelectionRadius(e.target.value)}
+                      className="mt-2"
+                      data-testid="input-selection-radius"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Parcels within this distance are auto-selected</p>
+                  </div>
+                  <div>
+                    <Label htmlFor="display-radius">Display Radius (meters)</Label>
+                    <Input
+                      id="display-radius"
+                      type="number"
+                      value={areaDisplayRadius}
+                      onChange={(e) => setAreaDisplayRadius(e.target.value)}
+                      className="mt-2"
+                      data-testid="input-display-radius"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Parcels within this distance are shown on map</p>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleSaveAreaSettings}
+                  disabled={updateAreaMutation.isPending}
+                  data-testid="button-save-area-settings"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {updateAreaMutation.isPending ? "Saving..." : "Save Area Settings"}
+                </Button>
+              </div>
+            )}
+
+            <div className="space-y-4 pt-4 border-t">
+              <h3 className="font-medium">Create New Area</h3>
+              <div>
+                <Label htmlFor="new-area-name">Area Name</Label>
+                <Input
+                  id="new-area-name"
+                  type="text"
+                  value={newAreaName}
+                  onChange={(e) => setNewAreaName(e.target.value)}
+                  className="mt-2"
+                  placeholder="e.g., Molin Nature Area"
+                  data-testid="input-new-area-name"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="new-area-center-lat">Center Latitude</Label>
+                  <Input
+                    id="new-area-center-lat"
+                    type="number"
+                    step="0.000001"
+                    value={newAreaCenterLat}
+                    onChange={(e) => setNewAreaCenterLat(e.target.value)}
+                    className="mt-2"
+                    placeholder="42.248002"
+                    data-testid="input-new-area-center-lat"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-area-center-lng">Center Longitude</Label>
+                  <Input
+                    id="new-area-center-lng"
+                    type="number"
+                    step="0.000001"
+                    value={newAreaCenterLng}
+                    onChange={(e) => setNewAreaCenterLng(e.target.value)}
+                    className="mt-2"
+                    placeholder="-83.715407"
+                    data-testid="input-new-area-center-lng"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-area-zoom">Default Zoom Level</Label>
+                  <Input
+                    id="new-area-zoom"
+                    type="number"
+                    value={newAreaZoom}
+                    onChange={(e) => setNewAreaZoom(e.target.value)}
+                    className="mt-2"
+                    placeholder="16"
+                    data-testid="input-new-area-zoom"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="new-selection-radius">Selection Radius (meters)</Label>
+                  <Input
+                    id="new-selection-radius"
+                    type="number"
+                    value={newAreaSelectionRadius}
+                    onChange={(e) => setNewAreaSelectionRadius(e.target.value)}
+                    className="mt-2"
+                    placeholder="200"
+                    data-testid="input-new-selection-radius"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Parcels within this distance will be auto-selected</p>
+                </div>
+                <div>
+                  <Label htmlFor="new-display-radius">Display Radius (meters)</Label>
+                  <Input
+                    id="new-display-radius"
+                    type="number"
+                    value={newAreaDisplayRadius}
+                    onChange={(e) => setNewAreaDisplayRadius(e.target.value)}
+                    className="mt-2"
+                    placeholder="5000"
+                    data-testid="input-new-display-radius"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Parcels within this distance will be shown on map</p>
+                </div>
+              </div>
+
+              <Button
+                onClick={handleCreateArea}
+                disabled={
+                  createAreaMutation.isPending || 
+                  !newAreaName || 
+                  !newAreaCenterLat || 
+                  !newAreaCenterLng ||
+                  isNaN(parseFloat(newAreaCenterLat)) ||
+                  isNaN(parseFloat(newAreaCenterLng)) ||
+                  isNaN(parseFloat(newAreaZoom)) ||
+                  isNaN(parseFloat(newAreaSelectionRadius)) ||
+                  isNaN(parseFloat(newAreaDisplayRadius))
+                }
+                data-testid="button-create-area"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {createAreaMutation.isPending ? "Creating..." : "Create Area"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Map View</CardTitle>
+            <CardDescription>
+              {selectedAreaId && selectedArea ? (
+                `Showing ${parcelsInDisplayRadius.length} parcels within ${selectedArea.displayRadiusMeters}m display radius, 
+                ${selectedParcelIds.length} parcels selected within ${selectedArea.selectionRadiusMeters}m`
+              ) : (
+                "Select an area to view parcels on the map"
               )}
-            </CardContent>
-          </Card>
-        )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="h-[500px] rounded-md overflow-hidden border">
+              <ParcelMap 
+                parcels={selectedAreaId ? mapParcels : []}
+                center={selectedArea ? [selectedArea.centerLat, selectedArea.centerLng] : undefined}
+                zoom={selectedArea?.defaultZoom || 15}
+                onParcelClick={handleParcelClick}
+                adminMode={true}
+              />
+            </div>
+            {selectedAreaId && (
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Leaf className="h-4 w-4 text-primary" />
+                  <span>Leaf markers indicate parcels selected in the area</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  <span>Regular polygons show nearby parcels</span>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-        {areas.length === 0 ? (
+        {selectedAreaId && (
           <Card>
             <CardHeader>
-              <CardTitle>Initialize Molin Nature Area</CardTitle>
-              <CardDescription>Set up the Molin Nature Area with parcels and selection boundaries</CardDescription>
+              <CardTitle>Parcel Management</CardTitle>
+              <CardDescription>Search and view parcel information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-4 bg-muted rounded-md">
-                <p className="text-sm mb-3">
-                  The Molin Nature Area initialization will:
-                </p>
-                <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
-                  <li>Load parcels from the pre-prepared GeoJSON file</li>
-                  <li>Create an area centered at Molin Nature Area (42.248002, -83.715407)</li>
-                  <li>Auto-select parcels within 200m of the center</li>
-                  <li>Display all parcels within 5km for admin review</li>
-                </ul>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search by address, nature phrase, or parcel ID..."
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  data-testid="input-search"
+                />
               </div>
-              <Button
-                onClick={() => initializeMolinAreaMutation.mutate()}
-                disabled={initializeMolinAreaMutation.isPending}
-                variant="default"
-                size="lg"
-                data-testid="button-initialize-molin-area"
-              >
-                <Leaf className="h-5 w-5 mr-2" />
-                {initializeMolinAreaMutation.isPending ? "Initializing..." : "Initialize Molin Area"}
-              </Button>
+              <AdminTable parcels={filteredParcels} />
             </CardContent>
           </Card>
-        ) : (
-          <>
-            <Card>
-              <CardHeader>
-                <CardTitle>Area: {molinArea?.name}</CardTitle>
-                <CardDescription>
-                  Showing {parcelsInDisplayRadius.length} parcels within {molinArea?.displayRadiusMeters}m display radius, 
-                  {selectedParcelIds.length} parcels selected within {molinArea?.selectionRadiusMeters}m
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="h-[500px] rounded-md overflow-hidden border">
-                  <ParcelMap 
-                    parcels={mapParcels}
-                    center={molinArea ? [molinArea.centerLat, molinArea.centerLng] : undefined}
-                    zoom={15}
-                    onParcelClick={handleParcelClick}
-                    adminMode={true}
-                  />
-                </div>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Leaf className="h-4 w-4 text-primary" />
-                    <span>Leaf markers indicate parcels selected in the area</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    <span>Regular polygons show nearby parcels</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Parcel Management</CardTitle>
-                <CardDescription>Search and view parcel information</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Search by address, nature phrase, or parcel ID..."
-                    className="pl-10"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    data-testid="input-search"
-                  />
-                </div>
-                <AdminTable parcels={filteredParcels} />
-              </CardContent>
-            </Card>
-          </>
         )}
       </div>
     </div>

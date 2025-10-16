@@ -217,6 +217,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create new area (protected)
+  app.post("/api/admin/areas", isAdmin, async (req, res) => {
+    try {
+      // Validate request body
+      const createSchema = z.object({
+        name: z.string().min(1),
+        centerLat: z.number().min(-90).max(90),
+        centerLng: z.number().min(-180).max(180),
+        defaultZoom: z.number().min(1).max(20),
+        selectionRadiusMeters: z.number().min(1),
+        displayRadiusMeters: z.number().min(1),
+      });
+      
+      const validated = createSchema.parse(req.body);
+      
+      const newArea = await storage.createArea(validated);
+      
+      // Auto-select parcels within the selection radius
+      const allParcels = await storage.getAllParcels();
+      let selectedCount = 0;
+      
+      for (const parcel of allParcels) {
+        const centroid = getParcelCentroid(parcel.geometry);
+        if (centroid) {
+          const distance = calculateDistance(
+            validated.centerLat,
+            validated.centerLng,
+            centroid.lat,
+            centroid.lng
+          );
+          
+          if (distance <= validated.selectionRadiusMeters) {
+            await storage.addParcelToArea(newArea.id, parcel.id);
+            selectedCount++;
+          }
+        }
+      }
+      
+      res.json({ ...newArea, selectedCount });
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Update area settings (protected)
   app.patch("/api/admin/areas/:areaId", isAdmin, async (req, res) => {
     try {
