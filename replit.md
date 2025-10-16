@@ -8,6 +8,21 @@ The platform features an interactive map displaying property parcels with color-
 
 ## Recent Changes
 
+### October 16, 2025 (Automatic Parcel Loading)
+- **Simplified Parcel Management**: Removed unnecessary manual loading UI
+  - Deleted "Parcel Data" section with "Load Molin Area Parcels" button from admin page
+  - Parcels now auto-load from attached_assets/molin_area_parcels.geojson when server starts
+  - MemStorage constructor calls initializeParcels() to seed 1,096 parcels synchronously
+  - Server logs confirm: "✓ Auto-loaded 1096 parcels from {path}"
+  
+- **Cleaner Admin Interface**: Admin page now only shows essential sections
+  - Application Settings - App Name, Admin Email, Admin Password
+  - Area Management - Create/Edit areas, manage parcels
+  - Map View - Interactive parcel display
+  - Parcel Management Table - View and edit parcel details
+  
+- **Removed Endpoints**: Deleted POST /api/admin/load-molin-parcels (no longer needed)
+
 ### October 16, 2025 (Manual Area Management - Final Implementation)
 - **Coordinate Input Streamlining**:
   - Right-click map copies coordinates in comma-delimited format: "lat,lng" (e.g., "42.248002,-83.715407")
