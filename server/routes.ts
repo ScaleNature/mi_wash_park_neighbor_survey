@@ -198,6 +198,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all parcels within display radius of an area (for admin map display)
+  app.get("/api/admin/areas/:areaId/map-parcels", isAdmin, async (req, res) => {
+    try {
+      const { areaId } = req.params;
+      
+      // Get the area to know its center and display radius
+      const area = await storage.getAreaById(areaId);
+      if (!area) {
+        return res.status(404).json({ message: "Area not found" });
+      }
+      
+      // Get all parcels
+      const allParcels = await storage.getAllParcels();
+      
+      // Haversine distance calculation
+      const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+        const R = 6371000; // Earth's radius in meters
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+      };
+      
+      // Filter parcels within display radius
+      const parcelsInRadius = allParcels.filter(parcel => {
+        const geom = parcel.geometry as any;
+        if (!geom || !geom.coordinates || !geom.coordinates[0]) {
+          return false;
+        }
+        
+        // Calculate parcel centroid
+        const ring = geom.coordinates[0];
+        let sumLat = 0, sumLng = 0;
+        ring.forEach((point: number[]) => {
+          sumLng += point[0];
+          sumLat += point[1];
+        });
+        const centroidLat = sumLat / ring.length;
+        const centroidLng = sumLng / ring.length;
+        
+        // Calculate distance from area center
+        const distance = calculateDistance(
+          area.centerLat,
+          area.centerLng,
+          centroidLat,
+          centroidLng
+        );
+        
+        return distance <= area.displayRadiusMeters;
+      });
+      
+      res.json(parcelsInRadius);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Toggle parcel in area (protected)
   app.post("/api/admin/areas/:areaId/parcels/:parcelId/toggle", isAdmin, async (req, res) => {
     try {

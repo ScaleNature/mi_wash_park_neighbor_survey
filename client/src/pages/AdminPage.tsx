@@ -57,10 +57,10 @@ export default function AdminPage() {
     enabled: !!session?.isAdmin,
   });
 
-  // Get parcels with full geometry
+  // Get parcels within display radius of selected area (server-side filtered)
   const { data: parcels = [] } = useQuery<Parcel[]>({
-    queryKey: ["/api/parcels"],
-    enabled: !!session?.isAdmin,
+    queryKey: ["/api/admin/areas", selectedAreaId, "map-parcels"],
+    enabled: !!session?.isAdmin && !!selectedAreaId,
   });
 
   // Get the selected area
@@ -310,24 +310,9 @@ export default function AdminPage() {
     };
   };
 
-  // Filter parcels within display radius
-  const parcelsInDisplayRadius = selectedArea ? parcels.filter(parcel => {
-    const centroid = getParcelCentroid(parcel.geometry);
-    if (!centroid) return false;
-    
-    const distance = calculateDistance(
-      selectedArea.centerLat,
-      selectedArea.centerLng,
-      centroid.lat,
-      centroid.lng
-    );
-    
-    return distance <= selectedArea.displayRadiusMeters;
-  }) : [];
-
-  // Convert parcels for map display
+  // Parcels are already filtered server-side, just convert them for map display
   // In admin mode, all parcels are gray, but selected ones get a leaf marker
-  const mapParcels = parcelsInDisplayRadius.map(parcel => ({
+  const mapParcels = parcels.map(parcel => ({
     id: parcel.id,
     coordinates: (parcel.geometry as any)?.coordinates || [],
     address: parcel.address || undefined,
@@ -615,7 +600,7 @@ export default function AdminPage() {
             <CardTitle>Map View</CardTitle>
             <CardDescription>
               {selectedAreaId && selectedArea ? (
-                `Showing ${parcelsInDisplayRadius.length} parcels within ${selectedArea.displayRadiusMeters}m display radius, ${selectedParcelIds.length} parcels selected in area`
+                `Showing ${parcels.length} parcels within ${selectedArea.displayRadiusMeters}m display radius, ${selectedParcelIds.length} parcels selected in area`
               ) : (
                 "Select an area to view parcels on the map"
               )}

@@ -8,7 +8,24 @@ The platform features an interactive map displaying property parcels with color-
 
 ## Recent Changes
 
-### October 16, 2025 (Parcel Loading Bug Fix & Admin Map Improvements)
+### October 16, 2025 (Full Dataset Integration & Performance Optimization)
+- **Switched to Full Washtenaw County Dataset**: Now loads from washtenaw_parcels_full.geojson (126,639 parcels)
+  - Source data uses State Plane Michigan South (EPSG:2898) coordinate system
+  - Implemented automatic coordinate conversion to WGS84 (lat/lng) using proj4 library
+  - Verified accuracy: Found 1,793 parcels within 1000m of test coordinates (42.247835, -83.715434)
+  
+- **Server-Side Parcel Filtering**: Massive performance improvement for admin map
+  - Created `/api/admin/areas/:areaId/map-parcels` endpoint for server-side filtering
+  - Filters parcels by display radius on server instead of client
+  - **Performance gain**: Returns 24K parcels in 47ms vs 13+ seconds to load all 126K
+  - Admin map now only loads parcels within selected area's display radius
+  
+- **Coordinate System Support**:
+  - Proj4 library automatically converts State Plane coordinates to lat/lng during parcel loading
+  - Projection definition: `+proj=lcc +lat_1=42.1 +lat_2=43.66666666666666 +lat_0=41.5 +lon_0=-84.36666666666666 +x_0=4000000 +y_0=0 +ellps=GRS80 +units=us-ft +no_defs`
+  - All parcel centroids and polygons stored in WGS84 (EPSG:4326) format
+
+### October 16, 2025 (Earlier - Parcel Loading Bug Fix & Admin Map Improvements)
 - **CRITICAL BUG FIX - Parcel ID Collisions**: Fixed major bug where 347 parcels were being lost
   - Previous centroid-based ID generation created duplicate IDs when parcels had similar centroids
   - Map.set() was overwriting parcels with duplicate IDs (1096 features → only 749 loaded)
