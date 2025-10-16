@@ -22,10 +22,11 @@ export default function CodePhraseEntry({ onValidCode }: CodePhraseEntryProps) {
     setIsChecking(true);
 
     try {
-      const response: any = await apiRequest("POST", "/api/parcels/verify", {
+      const res = await apiRequest("POST", "/api/parcels/verify", {
         parcelId,
         codePhrase,
       });
+      const response: any = await res.json();
       
       if (response.success && response.parcel) {
         onValidCode(response.parcel.id, response.parcel);
