@@ -8,7 +8,33 @@ The platform features an interactive map displaying property parcels with color-
 
 ## Recent Changes
 
-### October 16, 2025 (Admin Dashboard Reorganization)
+### October 16, 2025 (Admin Page Redesign - Create Areas from Scratch)
+- **Removed "Initialize Molin Area" Quick-Start**: Eliminated the preset initialization button in favor of full manual control
+- **Redesigned Admin Page Structure**:
+  1. Application Settings (always visible at top) - App Name, Admin Email, Admin Password
+  2. Area Management - Create new areas with name, center coordinates, zoom, selection/display radii
+  3. Map View (always visible) - Shows empty when no area selected, displays parcels when area selected
+  4. Parcel Management Table (only when area selected) - Shows parcels scoped to selected area
+  
+- **Create New Area Workflow**:
+  - Admin fills form with area name, center lat/lng, zoom level, selection radius (200m default), display radius (5000m default)
+  - POST /api/admin/areas endpoint creates area and auto-selects parcels within selection radius
+  - New area appears in dropdown and is automatically selected
+  - Map updates to show parcels, table shows selected parcels
+  
+- **Area Selection Logic**:
+  - Area dropdown shows all areas with "No area selected" option
+  - When area selected: map shows parcels within display radius, table shows only parcels in area
+  - When no area selected: map empty, table hidden
+  - All data properly scoped to selectedAreaId (fixed from hardcoded areas[0])
+  
+- **Data Flow Improvements**:
+  - Parcel queries and mutations now use selectedAreaId instead of hardcoded first area
+  - Table parcels filtered by selectedParcelIds for proper area scoping
+  - Map parcels marked as selected based on area membership
+  - Client-side validation prevents invalid numeric inputs
+
+### October 16, 2025 (Earlier - Admin Dashboard Reorganization)
 - **Admin Settings Restructure**: Separated application-level settings from area-specific settings
   - Application Settings: Only shows App Name, Admin Email, Admin Password
   - Area Management: New section with dropdown to select areas, displays area-specific settings
