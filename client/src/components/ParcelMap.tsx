@@ -179,7 +179,7 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
         <ResetViewButton center={center} zoom={zoom} />
         <MapClickHandler />
         <UpdateMapCenter center={center} zoom={zoom} />
-        <FitBoundsToParcel parcels={parcels} swapCoordinates={swapCoordinates} />
+        {!adminMode && <FitBoundsToParcel parcels={parcels} swapCoordinates={swapCoordinates} />}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
