@@ -196,7 +196,8 @@ export default function AdminPage() {
   // Load parcels mutation
   const loadParcelsMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", "/api/admin/load-molin-parcels") as any;
+      const res = await apiRequest("POST", "/api/admin/load-molin-parcels");
+      return await res.json();
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/parcels"] });
@@ -217,7 +218,8 @@ export default function AdminPage() {
   // Create new area mutation
   const createAreaMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("POST", "/api/admin/areas", data) as any;
+      const res = await apiRequest("POST", "/api/admin/areas", data);
+      return await res.json();
     },
     onSuccess: (newArea: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/areas"] });
@@ -269,13 +271,14 @@ export default function AdminPage() {
   const toggleParcelMutation = useMutation({
     mutationFn: async (parcelId: string) => {
       if (!selectedAreaId) throw new Error("No area selected");
-      return await apiRequest("POST", `/api/admin/areas/${selectedAreaId}/parcels/${parcelId}/toggle`);
+      const res = await apiRequest("POST", `/api/admin/areas/${selectedAreaId}/parcels/${parcelId}/toggle`);
+      return await res.json();
     },
     onSuccess: (data: any, parcelId: string) => {
       queryClient.invalidateQueries({ queryKey: ["/api/areas", selectedAreaId, "parcels"] });
       toast({
         title: data.inArea ? "Parcel added to area" : "Parcel removed from area",
-        description: `Parcel ${parcelId} ${data.inArea ? 'is now' : 'is no longer'} in the Molin Nature Area`,
+        description: `Parcel ${parcelId} ${data.inArea ? 'is now' : 'is no longer'} in the area`,
       });
     },
     onError: (error: Error) => {
