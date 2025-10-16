@@ -127,9 +127,10 @@ export class MemStorage implements IStorage {
           // Calculate and log the center of all parcels for reference
           if (count > 0) {
             let sumLat = 0, sumLng = 0, validCount = 0;
-            for (const parcel of this.parcels.values()) {
-              if (parcel.geometry && parcel.geometry.coordinates && parcel.geometry.coordinates[0]) {
-                const ring = parcel.geometry.coordinates[0];
+            for (const parcel of Array.from(this.parcels.values())) {
+              const geom = parcel.geometry as any;
+              if (geom && geom.coordinates && geom.coordinates[0]) {
+                const ring = geom.coordinates[0];
                 ring.forEach((point: number[]) => {
                   sumLng += point[0];
                   sumLat += point[1];
