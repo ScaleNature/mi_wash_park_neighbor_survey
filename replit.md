@@ -8,7 +8,14 @@ The platform features an interactive map displaying property parcels with color-
 
 ## Recent Changes
 
-### October 16, 2025 (Automatic Parcel Loading & Admin Map Fixes)
+### October 16, 2025 (Parcel Loading Bug Fix & Admin Map Improvements)
+- **CRITICAL BUG FIX - Parcel ID Collisions**: Fixed major bug where 347 parcels were being lost
+  - Previous centroid-based ID generation created duplicate IDs when parcels had similar centroids
+  - Map.set() was overwriting parcels with duplicate IDs (1096 features → only 749 loaded)
+  - Fixed by appending unique index to each parcel ID: `P{lat}_{lng}_{index}`
+  - **All 1096 parcels now load correctly** ✅
+  - Note: Existing area-parcel relationships need to be recreated due to new ID format
+
 - **Simplified Parcel Management**: Removed unnecessary manual loading UI
   - Deleted "Parcel Data" section with "Load Molin Area Parcels" button from admin page
   - Parcels now auto-load from attached_assets/molin_area_parcels.geojson when server starts
@@ -24,8 +31,8 @@ The platform features an interactive map displaying property parcels with color-
 - **Removed Endpoints**: Deleted POST /api/admin/load-molin-parcels (no longer needed)
 
 - **Parcel Center Calculation**: Added automatic parcel center logging on server startup
-  - Actual parcel center: **42.280566, -83.743475** (use this for area creation)
-  - Center is calculated from all 1,096 loaded parcels for accurate area positioning
+  - Actual parcel center: **42.280083, -83.743205** (use this for area creation)
+  - Center is calculated from ALL 1,096 loaded parcels for accurate area positioning
   - This ensures areas are created at the correct location to display parcels
 
 - **Admin Map Legend Cleanup**: Removed survey-related items from admin map view
