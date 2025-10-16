@@ -26,7 +26,7 @@ export default function AdminPage() {
   const [newAreaName, setNewAreaName] = useState('');
   const [newAreaCenterLocation, setNewAreaCenterLocation] = useState('');
   const [newAreaZoom, setNewAreaZoom] = useState('16');
-  const [newAreaDisplayRadius, setNewAreaDisplayRadius] = useState('5000');
+  const [newAreaDisplayRadius, setNewAreaDisplayRadius] = useState('500');
   
   const { toast } = useToast();
 
@@ -207,7 +207,7 @@ export default function AdminPage() {
       setNewAreaName('');
       setNewAreaCenterLocation('');
       setNewAreaZoom('16');
-      setNewAreaDisplayRadius('5000');
+      setNewAreaDisplayRadius('500');
       toast({
         title: "Area created",
         description: `${newArea.name} has been created successfully`,
@@ -346,6 +346,9 @@ export default function AdminPage() {
       codePhrase: parcel.codePhrase,
       status,
       responseDate: parcel.responseDate?.toString(),
+      q1Response: parcel.q1Response,
+      q2Response: parcel.q2Response,
+      q3Response: parcel.q3Response,
     };
   });
 

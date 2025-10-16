@@ -16,6 +16,9 @@ export interface ParcelAdmin {
   codePhrase: string;
   status: 'none' | 'light-green' | 'forest-green';
   responseDate?: string;
+  q1Response?: boolean | null;
+  q2Response?: boolean | null;
+  q3Response?: boolean | null;
 }
 
 interface AdminTableProps {
@@ -113,6 +116,9 @@ export default function AdminTable({ parcels }: AdminTableProps) {
               <TableHead>Address</TableHead>
               <TableHead>Code Phrase</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Q1</TableHead>
+              <TableHead>Q2</TableHead>
+              <TableHead>Q3</TableHead>
               <TableHead>Response Date</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -141,6 +147,15 @@ export default function AdminTable({ parcels }: AdminTableProps) {
                   <Badge variant="outline" className={statusColors[parcel.status]}>
                     {statusLabels[parcel.status]}
                   </Badge>
+                </TableCell>
+                <TableCell className="text-sm text-center">
+                  {parcel.q1Response == null ? '-' : parcel.q1Response ? '✓' : '✗'}
+                </TableCell>
+                <TableCell className="text-sm text-center">
+                  {parcel.q2Response == null ? '-' : parcel.q2Response ? '✓' : '✗'}
+                </TableCell>
+                <TableCell className="text-sm text-center">
+                  {parcel.q3Response == null ? '-' : parcel.q3Response ? '✓' : '✗'}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {parcel.responseDate || '-'}

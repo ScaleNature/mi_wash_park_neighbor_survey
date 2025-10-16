@@ -15,6 +15,9 @@ export interface Parcel {
   status: 'none' | 'light-green' | 'forest-green';
   hasCompost: boolean;
   selected?: boolean;
+  q1Response?: boolean | null;
+  q2Response?: boolean | null;
+  q3Response?: boolean | null;
 }
 
 interface ParcelMapProps {
@@ -185,6 +188,7 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
         ref={mapRef}
         center={center}
         zoom={zoom}
+        maxZoom={22}
         style={{ height: '100%', width: '100%' }}
         className="z-0"
       >
@@ -195,6 +199,7 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maxZoom={22}
         />
         {showParcelLayer && (
           <WMSTileLayer
@@ -268,7 +273,25 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
               key={`leaf-${parcel.id}`}
               position={getParcelCenter(leafletCoords)}
               icon={leafIcon}
-            />
+            >
+              {adminMode && (
+                <Popup>
+                  <div className="p-2 space-y-2" data-testid={`popup-admin-leaf-${parcel.id}`}>
+                    <div>
+                      {parcel.address && <p className="font-semibold">{parcel.address}</p>}
+                      <p className="text-xs font-mono text-muted-foreground">
+                        ID: {parcel.id}
+                      </p>
+                    </div>
+                    <div className="text-sm space-y-1">
+                      <p><strong>Q1 (Removal Permission):</strong> {parcel.q1Response == null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
+                      <p><strong>Q2 (Assistance Interest):</strong> {parcel.q2Response == null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
+                      <p><strong>Q3 (Compost Sharing):</strong> {parcel.q3Response == null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
+                    </div>
+                  </div>
+                </Popup>
+              )}
+            </Marker>
           );
         })}
         {parcels.filter(p => p.hasCompost).map((parcel) => {
