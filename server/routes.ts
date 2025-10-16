@@ -211,9 +211,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         areaParcelIds.forEach(id => parcelIdsSet.add(id));
       }
       
-      // Get full parcel data for these IDs
-      const allParcels = await storage.getAllParcels();
-      const areaParcels = allParcels.filter(p => parcelIdsSet.has(p.id));
+      // Get full parcel data for these IDs only
+      const areaParcels = await storage.getParcelsByIds(Array.from(parcelIdsSet));
       
       res.json(areaParcels);
     } catch (error: any) {
@@ -233,8 +232,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Area not found" });
       }
       
-      // Get all parcels and selected parcel IDs
-      const allParcels = await storage.getAllParcels();
+      // Get parcels for map display (only id, address, geometry) and selected parcel IDs
+      const allParcels = await storage.getParcelsForMapDisplay();
       const selectedParcelIds = await storage.getParcelsInArea(areaId);
       const selectedIdsSet = new Set(selectedParcelIds);
       
@@ -267,8 +266,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const ring = geom.coordinates[0];
         let sumLat = 0, sumLng = 0;
         ring.forEach((point: number[]) => {
-          sumLng += point[0];
-          sumLat += point[1];
+          sumLng += point[0];  // GeoJSON: point[0] is longitude
+          sumLat += point[1];  // GeoJSON: point[1] is latitude
         });
         const centroidLat = sumLat / ring.length;
         const centroidLng = sumLng / ring.length;

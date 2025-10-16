@@ -1,6 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import fs from "fs/promises";
 import path from "path";
@@ -53,6 +53,8 @@ export interface IStorage {
   verifyAdminCredentials(email: string, password: string): Promise<boolean>;
   
   getAllParcels(): Promise<Parcel[]>;
+  getParcelsForMapDisplay(): Promise<Pick<Parcel, 'id' | 'address' | 'geometry'>[]>;
+  getParcelsByIds(ids: string[]): Promise<Parcel[]>;
   getParcelById(id: string): Promise<Parcel | undefined>;
   updateParcel(id: string, updates: UpdateParcel): Promise<Parcel | undefined>;
   regenerateNaturePhrase(id: string): Promise<string | undefined>;
@@ -188,6 +190,19 @@ export class DbStorage implements IStorage {
     return await this.db.select().from(parcels);
   }
 
+  async getParcelsForMapDisplay(): Promise<Pick<Parcel, 'id' | 'address' | 'geometry'>[]> {
+    return await this.db.select({
+      id: parcels.id,
+      address: parcels.address,
+      geometry: parcels.geometry
+    }).from(parcels);
+  }
+
+  async getParcelsByIds(ids: string[]): Promise<Parcel[]> {
+    if (ids.length === 0) return [];
+    return await this.db.select().from(parcels).where(inArray(parcels.id, ids));
+  }
+
   async getParcelById(id: string): Promise<Parcel | undefined> {
     const result = await this.db.select().from(parcels).where(eq(parcels.id, id)).limit(1);
     return result[0];
@@ -236,6 +251,7 @@ export class DbStorage implements IStorage {
         if (originalGeometry && originalGeometry.type === 'Polygon' && originalGeometry.coordinates && originalGeometry.coordinates[0]) {
           const convertedRing = originalGeometry.coordinates[0].map((point: number[]) => {
             try {
+              // proj4 returns [longitude, latitude] for EPSG:4326, which is the GeoJSON standard
               const [lng, lat] = proj4('EPSG:2898', 'EPSG:4326', [point[0], point[1]]);
               return [lng, lat];
             } catch (e) {
