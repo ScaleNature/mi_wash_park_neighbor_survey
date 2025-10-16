@@ -89,7 +89,7 @@ export class MemStorage implements IStorage {
             const properties = feature.properties || {};
             const geometry = feature.geometry;
             
-            // Generate a stable parcel ID based on geometry centroid
+            // Generate a stable parcel ID based on geometry centroid + index for uniqueness
             let parcelId;
             if (geometry && geometry.type === 'Polygon' && geometry.coordinates && geometry.coordinates[0]) {
               const ring = geometry.coordinates[0];
@@ -100,7 +100,8 @@ export class MemStorage implements IStorage {
               });
               const centroidLat = (sumLat / ring.length).toFixed(6);
               const centroidLng = (sumLng / ring.length).toFixed(6);
-              parcelId = `P${centroidLat}_${centroidLng}`;
+              // Include count to ensure uniqueness even if centroids match
+              parcelId = `P${centroidLat}_${centroidLng}_${count}`;
             } else {
               parcelId = `PARCEL_${String(count + 1).padStart(4, '0')}`;
             }
