@@ -76,10 +76,22 @@ function MapClickHandler() {
 
 function UpdateMapCenter({ center, zoom }: { center?: LatLngExpression, zoom: number }) {
   const map = useMap();
+  const prevCenterRef = useRef<string | null>(null);
+  const prevZoomRef = useRef<number | null>(null);
   
   useEffect(() => {
     if (center) {
-      map.setView(center, zoom);
+      // Check if the actual values have changed (not just array reference)
+      const centerStr = JSON.stringify(center);
+      const valuesChanged = prevCenterRef.current !== centerStr || prevZoomRef.current !== zoom;
+      
+      // Only update map if values actually changed
+      if (valuesChanged) {
+        map.setView(center, zoom);
+        // Update refs to track current values
+        prevCenterRef.current = centerStr;
+        prevZoomRef.current = zoom;
+      }
     }
   }, [center, zoom, map]);
   
