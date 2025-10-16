@@ -1,8 +1,8 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { MapContainer, TileLayer, Polygon, Popup, Marker, useMap, useMapEvents, WMSTileLayer } from 'react-leaflet';
-import { LatLngExpression, Map as LeafletMap, Icon, divIcon, LatLngBounds } from 'leaflet';
+import { LatLngExpression, Map as LeafletMap, divIcon, LatLngBounds } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Trash2, RotateCcw, Layers, ExternalLink, Leaf } from 'lucide-react';
+import { Trash2, ExternalLink, Leaf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { useToast } from '@/hooks/use-toast';
@@ -26,29 +26,6 @@ interface ParcelMapProps {
   zoom?: number;
   onParcelClick?: (parcelId: string) => void;
   adminMode?: boolean;
-}
-
-function ResetViewButton({ center, zoom }: { center: LatLngExpression; zoom: number }) {
-  const map = useMap();
-  
-  const handleReset = () => {
-    map.setView(center, zoom);
-  };
-
-  return (
-    <div className="absolute top-4 left-4 z-[1000]">
-      <Button
-        onClick={handleReset}
-        variant="secondary"
-        size="sm"
-        className="shadow-md"
-        data-testid="button-reset-view"
-      >
-        <RotateCcw className="h-4 w-4 mr-2" />
-        Reset View
-      </Button>
-    </div>
-  );
 }
 
 function MapClickHandler() {
@@ -126,7 +103,6 @@ function FitBoundsToParcel({ parcels, swapCoordinates }: { parcels: Parcel[], sw
 
 export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, adminMode = false }: ParcelMapProps) {
   const mapRef = useRef<LeafletMap>(null);
-  const [showParcelLayer, setShowParcelLayer] = useState(true);
 
   const getParcelColor = (status: string, adminMode: boolean = false) => {
     if (adminMode) {
@@ -192,7 +168,6 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
         style={{ height: '100%', width: '100%' }}
         className="z-0"
       >
-        <ResetViewButton center={center} zoom={zoom} />
         <MapClickHandler />
         <UpdateMapCenter center={center} zoom={zoom} />
         {!adminMode && <FitBoundsToParcel parcels={parcels} swapCoordinates={swapCoordinates} />}
@@ -201,15 +176,13 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           maxZoom={22}
         />
-        {showParcelLayer && (
-          <WMSTileLayer
-            url="https://services3.arcgis.com/mRwarx73j5FhfOkR/arcgis/services/Parcels/MapServer/WMSServer"
-            layers="0"
-            format="image/png"
-            transparent={true}
-            attribution='&copy; <a href="https://www.washtenaw.org">Washtenaw County GIS</a>'
-          />
-        )}
+        <WMSTileLayer
+          url="https://services3.arcgis.com/mRwarx73j5FhfOkR/arcgis/services/Parcels/MapServer/WMSServer"
+          layers="0"
+          format="image/png"
+          transparent={true}
+          attribution='&copy; <a href="https://www.washtenaw.org">Washtenaw County GIS</a>'
+        />
         {parcels.map((parcel) => {
           const leafletCoords = swapCoordinates(parcel.coordinates);
           return (
@@ -305,19 +278,6 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
           );
         })}
       </MapContainer>
-
-      <div className="absolute top-4 right-4 z-[1000]">
-        <Button
-          onClick={() => setShowParcelLayer(!showParcelLayer)}
-          variant={showParcelLayer ? "default" : "outline"}
-          size="sm"
-          className="shadow-md"
-          data-testid="button-toggle-parcels"
-        >
-          <Layers className="h-4 w-4 mr-2" />
-          {showParcelLayer ? "Hide" : "Show"} Parcels
-        </Button>
-      </div>
 
       {!adminMode && (
         <div className="absolute bottom-4 right-4 bg-card/95 backdrop-blur-sm border rounded-md p-4 z-[1000]" data-testid="map-legend">

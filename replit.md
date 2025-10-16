@@ -123,6 +123,14 @@ Preferred communication style: Simple, everyday language.
 
 **Session Storage**: `memorystore` (for development, to be replaced with `connect-pg-simple` for production).
 
+## Recent Changes
+
+- **Oct 16, 2024**: Simplified map UI by removing "Hide Parcels" toggle button and adding area dropdown selector for navigation between different nature areas
+- **Oct 16, 2024**: Implemented efficient bounding box filtering for admin map using parcel ID prefixes (resolves Neon 64MB response limit issue)
+- **Oct 16, 2024**: Created shared geometry utilities (`server/geomUtils.ts`) for centroid calculation and distance measurement
+- **Oct 16, 2024**: Added coordinate transformation support for mixed CRS (WGS84 and State Plane Michigan EPSG:2898)
+- **2024**: Initial implementation of neighborhood support application with map interface, survey system, and admin dashboard
+
 ## Key Files
 
 - `/data/areas.json` - Area definitions (editable in dev only)
