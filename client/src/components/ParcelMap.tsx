@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Polygon, Popup, Marker, useMap, useMapEvents, WMSTileLayer } from 'react-leaflet';
-import { LatLngExpression, Map as LeafletMap, Icon, divIcon } from 'leaflet';
+import { LatLngExpression, Map as LeafletMap, Icon, divIcon, LatLngBounds } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Trash2, RotateCcw, Layers, ExternalLink, Leaf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -73,6 +73,28 @@ function MapClickHandler() {
   return null;
 }
 
+function FitBoundsToParcel({ parcels }: { parcels: Parcel[] }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (parcels.length > 0) {
+      const bounds = new LatLngBounds([]);
+      
+      parcels.forEach((parcel) => {
+        parcel.coordinates[0].forEach((coord) => {
+          bounds.extend(coord as [number, number]);
+        });
+      });
+      
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [50, 50] });
+      }
+    }
+  }, [parcels, map]);
+  
+  return null;
+}
+
 export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, adminMode = false }: ParcelMapProps) {
   const mapRef = useRef<LeafletMap>(null);
   const [showParcelLayer, setShowParcelLayer] = useState(true);
@@ -131,6 +153,7 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
       >
         <ResetViewButton center={center} zoom={zoom} />
         <MapClickHandler />
+        <FitBoundsToParcel parcels={parcels} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
