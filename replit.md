@@ -25,6 +25,12 @@ The platform features an interactive map displaying property parcels with color-
   - Projection definition: `+proj=lcc +lat_1=42.1 +lat_2=43.66666666666666 +lat_0=41.5 +lon_0=-84.36666666666666 +x_0=4000000 +y_0=0 +ellps=GRS80 +units=us-ft +no_defs`
   - All parcel centroids and polygons stored in WGS84 (EPSG:4326) format
 
+- **Admin Map UX Improvements**: Fixed disruptive behaviors during parcel selection
+  - **No popups in admin mode**: Popups now only appear in survey mode, not when clicking parcels in admin view
+  - **Stable map viewport**: Map no longer re-centers/zooms when toggling parcels in/out of an area
+  - **Smart re-centering**: Map still properly re-centers when switching between different areas
+  - Implementation: UpdateMapCenter compares actual center/zoom values (not array references) to prevent unnecessary setView calls
+
 ### October 16, 2025 (Earlier - Parcel Loading Bug Fix & Admin Map Improvements)
 - **CRITICAL BUG FIX - Parcel ID Collisions**: Fixed major bug where 347 parcels were being lost
   - Previous centroid-based ID generation created duplicate IDs when parcels had similar centroids
