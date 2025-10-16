@@ -8,31 +8,36 @@ The platform features an interactive map displaying property parcels with color-
 
 ## Recent Changes
 
-### October 16, 2025 (Admin Page Redesign - Create Areas from Scratch)
-- **Removed "Initialize Molin Area" Quick-Start**: Eliminated the preset initialization button in favor of full manual control
-- **Redesigned Admin Page Structure**:
-  1. Application Settings (always visible at top) - App Name, Admin Email, Admin Password
-  2. Area Management - Create new areas with name, center coordinates, zoom, selection/display radii
+### October 16, 2025 (Manual Area Management - Final Implementation)
+- **Coordinate Input Streamlining**:
+  - Right-click map copies coordinates in comma-delimited format: "lat,lng" (e.g., "42.248002,-83.715407")
+  - Both Create and Edit forms use single "Center Location (lat,lng)" input field
+  - Automatic parsing with validation and clear error messages for invalid formats
+  - Removed separate latitude/longitude input fields
+
+- **Empty Area Creation**:
+  - Removed Selection Radius field and automatic parcel selection
+  - Areas now start completely empty when created
+  - Admins manually add parcels by left-clicking them on the map
+  - POST /api/admin/areas endpoint creates area without selecting any parcels
+  
+- **Admin Map Display**:
+  - All parcels shown in gray regardless of status (no green coloring in admin mode)
+  - Leaf markers (🍃) appear ONLY on parcels that are in the selected area
+  - Parcels within display radius are clickable to add/remove from area
+  - Left-click toggles parcel in/out of area with instant visual feedback
+  
+- **Admin Page Structure**:
+  1. Application Settings (always visible) - App Name, Admin Email, Admin Password
+  2. Area Management - Create/Edit areas with name, center location (lat,lng), zoom, display radius
   3. Map View (always visible) - Shows empty when no area selected, displays parcels when area selected
-  4. Parcel Management Table (only when area selected) - Shows parcels scoped to selected area
+  4. Parcel Management Table (only when area selected) - Shows parcels in the selected area
   
-- **Create New Area Workflow**:
-  - Admin fills form with area name, center lat/lng, zoom level, selection radius (200m default), display radius (5000m default)
-  - POST /api/admin/areas endpoint creates area and auto-selects parcels within selection radius
-  - New area appears in dropdown and is automatically selected
-  - Map updates to show parcels, table shows selected parcels
-  
-- **Area Selection Logic**:
-  - Area dropdown shows all areas with "No area selected" option
-  - When area selected: map shows parcels within display radius, table shows only parcels in area
-  - When no area selected: map empty, table hidden
-  - All data properly scoped to selectedAreaId (fixed from hardcoded areas[0])
-  
-- **Data Flow Improvements**:
-  - Parcel queries and mutations now use selectedAreaId instead of hardcoded first area
-  - Table parcels filtered by selectedParcelIds for proper area scoping
-  - Map parcels marked as selected based on area membership
-  - Client-side validation prevents invalid numeric inputs
+- **Data Flow**:
+  - Parcel queries and mutations scoped to selectedAreaId
+  - Table parcels filtered by area membership
+  - Map parcels flagged as `selected` for leaf marker rendering
+  - Schema updated: removed selectionRadiusMeters column from Areas table
 
 ### October 16, 2025 (Earlier - Admin Dashboard Reorganization)
 - **Admin Settings Restructure**: Separated application-level settings from area-specific settings
