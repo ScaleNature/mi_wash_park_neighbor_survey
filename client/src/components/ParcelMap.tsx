@@ -51,14 +51,14 @@ function MapClickHandler() {
   const { toast } = useToast();
   
   useMapEvents({
-    click: (e) => {
+    contextmenu: (e) => {
       const { lat, lng } = e.latlng;
-      const coordsText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      const coordsText = `${lat.toFixed(6)},${lng.toFixed(6)}`;
       
       navigator.clipboard.writeText(coordsText).then(() => {
         toast({
           title: "Coordinates copied!",
-          description: `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`,
+          description: coordsText,
         });
       }).catch(() => {
         toast({
