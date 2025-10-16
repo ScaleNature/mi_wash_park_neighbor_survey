@@ -282,31 +282,33 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
         </Button>
       </div>
 
-      <div className="absolute bottom-4 right-4 bg-card/95 backdrop-blur-sm border rounded-md p-4 z-[1000]" data-testid="map-legend">
-        <h3 className="font-semibold text-sm mb-2">Legend</h3>
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: '#94a3b8' }} />
-            <span>No Response</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: '#9ed89e' }} />
-            <span>Q1 Support</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: '#2d7a4f' }} />
-            <span>Full Support</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Leaf className="h-4 w-4 text-green-600" />
-            <span>Selected in Area</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Trash2 className="h-4 w-4 text-primary" />
-            <span>Compost Available</span>
+      {!adminMode && (
+        <div className="absolute bottom-4 right-4 bg-card/95 backdrop-blur-sm border rounded-md p-4 z-[1000]" data-testid="map-legend">
+          <h3 className="font-semibold text-sm mb-2">Legend</h3>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: '#94a3b8' }} />
+              <span>No Response</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: '#9ed89e' }} />
+              <span>Q1 Support</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: '#2d7a4f' }} />
+              <span>Full Support</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Leaf className="h-4 w-4 text-green-600" />
+              <span>Selected in Area</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Trash2 className="h-4 w-4 text-primary" />
+              <span>Compost Available</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -123,6 +123,26 @@ export class MemStorage implements IStorage {
             count++;
           }
           
+          // Calculate and log the center of all parcels for reference
+          if (count > 0) {
+            let sumLat = 0, sumLng = 0, validCount = 0;
+            for (const parcel of this.parcels.values()) {
+              if (parcel.geometry && parcel.geometry.coordinates && parcel.geometry.coordinates[0]) {
+                const ring = parcel.geometry.coordinates[0];
+                ring.forEach((point: number[]) => {
+                  sumLng += point[0];
+                  sumLat += point[1];
+                  validCount++;
+                });
+              }
+            }
+            if (validCount > 0) {
+              const centerLat = (sumLat / validCount).toFixed(6);
+              const centerLng = (sumLng / validCount).toFixed(6);
+              console.log(`  📍 Parcel center (for area creation): ${centerLat}, ${centerLng}`);
+            }
+          }
+          
           console.log(`✓ Auto-loaded ${count} parcels from ${geojsonPath}`);
         }
       } else {
