@@ -198,6 +198,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all parcels that are in any area (for public survey map)
+  app.get("/api/survey/parcels", async (_req, res) => {
+    try {
+      // Get all areas
+      const areas = await storage.getAllAreas();
+      
+      // Collect all unique parcel IDs from all areas
+      const parcelIdsSet = new Set<string>();
+      for (const area of areas) {
+        const areaParcelIds = await storage.getParcelsInArea(area.id);
+        areaParcelIds.forEach(id => parcelIdsSet.add(id));
+      }
+      
+      // Get full parcel data for these IDs
+      const allParcels = await storage.getAllParcels();
+      const areaParcels = allParcels.filter(p => parcelIdsSet.has(p.id));
+      
+      res.json(areaParcels);
+    } catch (error: any) {
+      console.error("Error fetching survey parcels:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get all parcels within display radius of an area (for admin map display)
   app.get("/api/admin/areas/:areaId/map-parcels", isAdmin, async (req, res) => {
     try {

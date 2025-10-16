@@ -32,7 +32,7 @@ export default function MapPage() {
   });
 
   const { data: parcelsData, isLoading } = useQuery<ParcelData[]>({
-    queryKey: ["/api/parcels"],
+    queryKey: ["/api/survey/parcels"],
   });
 
   const center: [number, number] = [
