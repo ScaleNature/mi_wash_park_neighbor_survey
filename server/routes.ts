@@ -226,7 +226,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         centerLat: z.number().min(-90).max(90),
         centerLng: z.number().min(-180).max(180),
         defaultZoom: z.number().min(1).max(20),
-        selectionRadiusMeters: z.number().min(1),
         displayRadiusMeters: z.number().min(1),
       });
       
@@ -234,28 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const newArea = await storage.createArea(validated);
       
-      // Auto-select parcels within the selection radius
-      const allParcels = await storage.getAllParcels();
-      let selectedCount = 0;
-      
-      for (const parcel of allParcels) {
-        const centroid = getParcelCentroid(parcel.geometry);
-        if (centroid) {
-          const distance = calculateDistance(
-            validated.centerLat,
-            validated.centerLng,
-            centroid.lat,
-            centroid.lng
-          );
-          
-          if (distance <= validated.selectionRadiusMeters) {
-            await storage.addParcelToArea(newArea.id, parcel.id);
-            selectedCount++;
-          }
-        }
-      }
-      
-      res.json({ ...newArea, selectedCount });
+      res.json(newArea);
     } catch (error: any) {
       if (error.name === 'ZodError') {
         return res.status(400).json({ message: "Invalid request data", errors: error.errors });
@@ -274,7 +252,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         centerLat: z.number().min(-90).max(90),
         centerLng: z.number().min(-180).max(180),
         defaultZoom: z.number().min(1).max(20),
-        selectionRadiusMeters: z.number().min(1),
         displayRadiusMeters: z.number().min(1),
       }).partial();
       
@@ -439,7 +416,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: "Molin Nature Area",
           centerLat: MOLIN_CENTER_LAT,
           centerLng: MOLIN_CENTER_LNG,
-          selectionRadiusMeters: SELECTION_RADIUS,
           displayRadiusMeters: DISPLAY_RADIUS,
         });
       }

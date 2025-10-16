@@ -222,8 +222,7 @@ export class MemStorage implements IStorage {
       centerLat: insertArea.centerLat,
       centerLng: insertArea.centerLng,
       defaultZoom: insertArea.defaultZoom ?? 16,
-      selectionRadiusMeters: insertArea.selectionRadiusMeters ?? 200,
-      displayRadiusMeters: insertArea.displayRadiusMeters ?? 1000,
+      displayRadiusMeters: insertArea.displayRadiusMeters ?? 5000,
       createdAt: new Date(),
     };
     this.areas.set(id, area);
