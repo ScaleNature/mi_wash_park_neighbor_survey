@@ -18,15 +18,13 @@ export default function AdminPage() {
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [selectedAreaId, setSelectedAreaId] = useState<string>('');
-  const [areaCenterLat, setAreaCenterLat] = useState('');
-  const [areaCenterLng, setAreaCenterLng] = useState('');
+  const [areaCenterLocation, setAreaCenterLocation] = useState('');
   const [areaZoom, setAreaZoom] = useState('');
   const [areaDisplayRadius, setAreaDisplayRadius] = useState('');
   
   // New area form state
   const [newAreaName, setNewAreaName] = useState('');
-  const [newAreaCenterLat, setNewAreaCenterLat] = useState('');
-  const [newAreaCenterLng, setNewAreaCenterLng] = useState('');
+  const [newAreaCenterLocation, setNewAreaCenterLocation] = useState('');
   const [newAreaZoom, setNewAreaZoom] = useState('16');
   const [newAreaDisplayRadius, setNewAreaDisplayRadius] = useState('5000');
   
@@ -91,8 +89,7 @@ export default function AdminPage() {
   useEffect(() => {
     const selectedArea = areas.find(a => a.id === selectedAreaId);
     if (selectedArea) {
-      setAreaCenterLat(selectedArea.centerLat.toString());
-      setAreaCenterLng(selectedArea.centerLng.toString());
+      setAreaCenterLocation(`${selectedArea.centerLat},${selectedArea.centerLng}`);
       setAreaZoom(selectedArea.defaultZoom.toString());
       setAreaDisplayRadius(selectedArea.displayRadiusMeters.toString());
     }
@@ -174,9 +171,22 @@ export default function AdminPage() {
   });
 
   const handleSaveAreaSettings = () => {
+    const [lat, lng] = areaCenterLocation.split(',').map(s => s.trim());
+    const centerLat = parseFloat(lat);
+    const centerLng = parseFloat(lng);
+    
+    if (isNaN(centerLat) || isNaN(centerLng)) {
+      toast({
+        title: "Invalid coordinates",
+        description: "Please enter coordinates in 'lat,lng' format (e.g., 42.248002,-83.715407)",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const areaData = {
-      centerLat: parseFloat(areaCenterLat),
-      centerLng: parseFloat(areaCenterLng),
+      centerLat,
+      centerLng,
       defaultZoom: parseFloat(areaZoom),
       displayRadiusMeters: parseFloat(areaDisplayRadius),
     };
@@ -192,8 +202,7 @@ export default function AdminPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/areas"] });
       setSelectedAreaId(newArea.id);
       setNewAreaName('');
-      setNewAreaCenterLat('');
-      setNewAreaCenterLng('');
+      setNewAreaCenterLocation('');
       setNewAreaZoom('16');
       setNewAreaDisplayRadius('5000');
       toast({
@@ -211,10 +220,23 @@ export default function AdminPage() {
   });
 
   const handleCreateArea = () => {
+    const [lat, lng] = newAreaCenterLocation.split(',').map(s => s.trim());
+    const centerLat = parseFloat(lat);
+    const centerLng = parseFloat(lng);
+    
+    if (isNaN(centerLat) || isNaN(centerLng)) {
+      toast({
+        title: "Invalid coordinates",
+        description: "Please enter coordinates in 'lat,lng' format (e.g., 42.248002,-83.715407)",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const areaData = {
       name: newAreaName,
-      centerLat: parseFloat(newAreaCenterLat),
-      centerLng: parseFloat(newAreaCenterLng),
+      centerLat,
+      centerLng,
       defaultZoom: parseFloat(newAreaZoom),
       displayRadiusMeters: parseFloat(newAreaDisplayRadius),
     };
@@ -457,30 +479,19 @@ export default function AdminPage() {
             {selectedAreaId && (
               <div className="space-y-4 pt-4 border-t">
                 <h3 className="font-medium">Edit Selected Area</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="area-center-lat">Center Latitude</Label>
+                    <Label htmlFor="area-center-location">Center Location (lat,lng)</Label>
                     <Input
-                      id="area-center-lat"
-                      type="number"
-                      step="0.000001"
-                      value={areaCenterLat}
-                      onChange={(e) => setAreaCenterLat(e.target.value)}
+                      id="area-center-location"
+                      type="text"
+                      value={areaCenterLocation}
+                      onChange={(e) => setAreaCenterLocation(e.target.value)}
                       className="mt-2"
-                      data-testid="input-area-center-lat"
+                      placeholder="42.248002,-83.715407"
+                      data-testid="input-area-center-location"
                     />
-                  </div>
-                  <div>
-                    <Label htmlFor="area-center-lng">Center Longitude</Label>
-                    <Input
-                      id="area-center-lng"
-                      type="number"
-                      step="0.000001"
-                      value={areaCenterLng}
-                      onChange={(e) => setAreaCenterLng(e.target.value)}
-                      className="mt-2"
-                      data-testid="input-area-center-lng"
-                    />
+                    <p className="text-xs text-muted-foreground mt-1">Right-click map to copy coordinates</p>
                   </div>
                   <div>
                     <Label htmlFor="area-zoom">Default Zoom Level</Label>
@@ -535,32 +546,19 @@ export default function AdminPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="new-area-center-lat">Center Latitude</Label>
+                  <Label htmlFor="new-area-center-location">Center Location (lat,lng)</Label>
                   <Input
-                    id="new-area-center-lat"
-                    type="number"
-                    step="0.000001"
-                    value={newAreaCenterLat}
-                    onChange={(e) => setNewAreaCenterLat(e.target.value)}
+                    id="new-area-center-location"
+                    type="text"
+                    value={newAreaCenterLocation}
+                    onChange={(e) => setNewAreaCenterLocation(e.target.value)}
                     className="mt-2"
-                    placeholder="42.248002"
-                    data-testid="input-new-area-center-lat"
+                    placeholder="42.248002,-83.715407"
+                    data-testid="input-new-area-center-location"
                   />
-                </div>
-                <div>
-                  <Label htmlFor="new-area-center-lng">Center Longitude</Label>
-                  <Input
-                    id="new-area-center-lng"
-                    type="number"
-                    step="0.000001"
-                    value={newAreaCenterLng}
-                    onChange={(e) => setNewAreaCenterLng(e.target.value)}
-                    className="mt-2"
-                    placeholder="-83.715407"
-                    data-testid="input-new-area-center-lng"
-                  />
+                  <p className="text-xs text-muted-foreground mt-1">Right-click map to copy coordinates</p>
                 </div>
                 <div>
                   <Label htmlFor="new-area-zoom">Default Zoom Level</Label>
@@ -595,10 +593,7 @@ export default function AdminPage() {
                 disabled={
                   createAreaMutation.isPending || 
                   !newAreaName || 
-                  !newAreaCenterLat || 
-                  !newAreaCenterLng ||
-                  isNaN(parseFloat(newAreaCenterLat)) ||
-                  isNaN(parseFloat(newAreaCenterLng)) ||
+                  !newAreaCenterLocation ||
                   isNaN(parseFloat(newAreaZoom)) ||
                   isNaN(parseFloat(newAreaDisplayRadius))
                 }
