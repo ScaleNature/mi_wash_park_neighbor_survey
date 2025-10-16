@@ -73,7 +73,7 @@ function MapClickHandler() {
   return null;
 }
 
-function FitBoundsToParcel({ parcels }: { parcels: Parcel[] }) {
+function FitBoundsToParcel({ parcels, swapCoordinates }: { parcels: Parcel[], swapCoordinates: (coords: LatLngExpression[][]) => LatLngExpression[][] }) {
   const map = useMap();
   
   useEffect(() => {
@@ -81,7 +81,8 @@ function FitBoundsToParcel({ parcels }: { parcels: Parcel[] }) {
       const bounds = new LatLngBounds([]);
       
       parcels.forEach((parcel) => {
-        parcel.coordinates[0].forEach((coord) => {
+        const leafletCoords = swapCoordinates(parcel.coordinates);
+        leafletCoords[0].forEach((coord) => {
           bounds.extend(coord as [number, number]);
         });
       });
@@ -90,7 +91,7 @@ function FitBoundsToParcel({ parcels }: { parcels: Parcel[] }) {
         map.fitBounds(bounds, { padding: [50, 50] });
       }
     }
-  }, [parcels, map]);
+  }, [parcels, map, swapCoordinates]);
   
   return null;
 }
@@ -110,7 +111,15 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
     }
   };
 
+  // Convert GeoJSON coordinates [lng, lat] to Leaflet format [lat, lng]
+  const swapCoordinates = (coords: LatLngExpression[][]): LatLngExpression[][] => {
+    return coords.map(ring => 
+      (ring as [number, number][]).map(([lng, lat]) => [lat, lng] as [number, number])
+    );
+  };
+
   const getParcelCenter = (coordinates: LatLngExpression[][]): LatLngExpression => {
+    // Coordinates are already in Leaflet format [lat, lng] at this point
     const coords = coordinates[0] as [number, number][];
     const lats = coords.map(c => c[0]);
     const lngs = coords.map(c => c[1]);
@@ -153,7 +162,7 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
       >
         <ResetViewButton center={center} zoom={zoom} />
         <MapClickHandler />
-        <FitBoundsToParcel parcels={parcels} />
+        <FitBoundsToParcel parcels={parcels} swapCoordinates={swapCoordinates} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -167,24 +176,26 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
             attribution='&copy; <a href="https://www.washtenaw.org">Washtenaw County GIS</a>'
           />
         )}
-        {parcels.map((parcel) => (
-          <Polygon
-            key={parcel.id}
-            positions={parcel.coordinates}
-            pathOptions={{
-              color: getParcelColor(parcel.status),
-              fillColor: getParcelColor(parcel.status),
-              fillOpacity: 0.5,
-              weight: 2,
-              className: adminMode ? 'cursor-pointer' : ''
-            }}
-            eventHandlers={adminMode && onParcelClick ? {
-              click: (e) => {
-                e.originalEvent.stopPropagation();
-                onParcelClick(parcel.id);
-              }
-            } : undefined}
-          >
+        {parcels.map((parcel) => {
+          const leafletCoords = swapCoordinates(parcel.coordinates);
+          return (
+            <Polygon
+              key={parcel.id}
+              positions={leafletCoords}
+              pathOptions={{
+                color: getParcelColor(parcel.status),
+                fillColor: getParcelColor(parcel.status),
+                fillOpacity: 0.5,
+                weight: 2,
+                className: adminMode ? 'cursor-pointer' : ''
+              }}
+              eventHandlers={adminMode && onParcelClick ? {
+                click: (e) => {
+                  e.originalEvent.stopPropagation();
+                  onParcelClick(parcel.id);
+                }
+              } : undefined}
+            >
             <Popup>
               <div className="p-2 space-y-2" data-testid={`popup-parcel-${parcel.id}`}>
                 <div>
@@ -216,21 +227,29 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
               </div>
             </Popup>
           </Polygon>
-        ))}
-        {parcels.filter(p => p.status === 'forest-green').map((parcel) => (
-          <Marker
-            key={`leaf-${parcel.id}`}
-            position={getParcelCenter(parcel.coordinates)}
-            icon={leafIcon}
-          />
-        ))}
-        {parcels.filter(p => p.hasCompost).map((parcel) => (
-          <Marker
-            key={`compost-${parcel.id}`}
-            position={getParcelCenter(parcel.coordinates)}
-            icon={compostIcon}
-          />
-        ))}
+          );
+        }
+        )}
+        {parcels.filter(p => p.status === 'forest-green').map((parcel) => {
+          const leafletCoords = swapCoordinates(parcel.coordinates);
+          return (
+            <Marker
+              key={`leaf-${parcel.id}`}
+              position={getParcelCenter(leafletCoords)}
+              icon={leafIcon}
+            />
+          );
+        })}
+        {parcels.filter(p => p.hasCompost).map((parcel) => {
+          const leafletCoords = swapCoordinates(parcel.coordinates);
+          return (
+            <Marker
+              key={`compost-${parcel.id}`}
+              position={getParcelCenter(leafletCoords)}
+              icon={compostIcon}
+            />
+          );
+        })}
       </MapContainer>
 
       <div className="absolute top-4 right-4 z-[1000]">
