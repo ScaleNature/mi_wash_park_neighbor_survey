@@ -74,6 +74,18 @@ function MapClickHandler() {
   return null;
 }
 
+function UpdateMapCenter({ center, zoom }: { center?: LatLngExpression, zoom: number }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (center) {
+      map.setView(center, zoom);
+    }
+  }, [center, zoom, map]);
+  
+  return null;
+}
+
 function FitBoundsToParcel({ parcels, swapCoordinates }: { parcels: Parcel[], swapCoordinates: (coords: LatLngExpression[][]) => LatLngExpression[][] }) {
   const map = useMap();
   
@@ -166,6 +178,7 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
       >
         <ResetViewButton center={center} zoom={zoom} />
         <MapClickHandler />
+        <UpdateMapCenter center={center} zoom={zoom} />
         <FitBoundsToParcel parcels={parcels} swapCoordinates={swapCoordinates} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

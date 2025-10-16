@@ -193,6 +193,27 @@ export default function AdminPage() {
     updateAreaMutation.mutate(areaData);
   };
 
+  // Load parcels mutation
+  const loadParcelsMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/admin/load-molin-parcels") as any;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/parcels"] });
+      toast({
+        title: "Parcels loaded",
+        description: `Successfully loaded ${data.count} parcels from Molin area`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to load parcels",
+        description: error.message || "Failed to load parcels",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Create new area mutation
   const createAreaMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -449,6 +470,30 @@ export default function AdminPage() {
               <Save className="h-4 w-4 mr-2" />
               {updateSettingsMutation.isPending ? "Saving..." : "Save Settings"}
             </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Parcel Data</CardTitle>
+            <CardDescription>Load parcel data before creating areas</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <Button
+                onClick={() => loadParcelsMutation.mutate()}
+                disabled={loadParcelsMutation.isPending}
+                data-testid="button-load-parcels"
+              >
+                <Leaf className="h-4 w-4 mr-2" />
+                {loadParcelsMutation.isPending ? "Loading..." : `Load Molin Area Parcels (${parcels.length} loaded)`}
+              </Button>
+              {parcels.length > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {parcels.length} parcels available
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
 
