@@ -324,12 +324,14 @@ export default function AdminPage() {
   }) : [];
 
   // Convert parcels for map display
+  // In admin mode, all parcels are gray, but selected ones get a leaf marker
   const mapParcels = parcelsInDisplayRadius.map(parcel => ({
     id: parcel.id,
     coordinates: (parcel.geometry as any)?.coordinates || [],
     address: parcel.address || undefined,
-    status: (selectedParcelIds.includes(parcel.id) ? 'forest-green' : 'none') as 'none' | 'light-green' | 'forest-green',
+    status: 'none' as 'none' | 'light-green' | 'forest-green',
     hasCompost: false,
+    selected: selectedParcelIds.includes(parcel.id),
   }));
 
   // Convert full Parcels to ParcelAdmin for the table

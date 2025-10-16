@@ -14,6 +14,7 @@ export interface Parcel {
   address?: string;
   status: 'none' | 'light-green' | 'forest-green';
   hasCompost: boolean;
+  selected?: boolean;
 }
 
 interface ParcelMapProps {
@@ -100,7 +101,10 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
   const mapRef = useRef<LeafletMap>(null);
   const [showParcelLayer, setShowParcelLayer] = useState(true);
 
-  const getParcelColor = (status: string) => {
+  const getParcelColor = (status: string, adminMode: boolean = false) => {
+    if (adminMode) {
+      return '#94a3b8';
+    }
     switch (status) {
       case 'light-green':
         return '#9ed89e';
@@ -183,8 +187,8 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
               key={parcel.id}
               positions={leafletCoords}
               pathOptions={{
-                color: getParcelColor(parcel.status),
-                fillColor: getParcelColor(parcel.status),
+                color: getParcelColor(parcel.status, adminMode),
+                fillColor: getParcelColor(parcel.status, adminMode),
                 fillOpacity: 0.5,
                 weight: 2,
                 className: adminMode ? 'cursor-pointer' : ''
@@ -230,7 +234,7 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
           );
         }
         )}
-        {parcels.filter(p => p.status === 'forest-green').map((parcel) => {
+        {parcels.filter(p => adminMode ? p.selected : p.status === 'forest-green').map((parcel) => {
           const leafletCoords = swapCoordinates(parcel.coordinates);
           return (
             <Marker
