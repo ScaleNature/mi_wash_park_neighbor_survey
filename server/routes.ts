@@ -209,8 +209,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Area not found" });
       }
       
-      // Get all parcels
+      // Get all parcels and selected parcel IDs
       const allParcels = await storage.getAllParcels();
+      const selectedParcelIds = await storage.getParcelsInArea(areaId);
+      const selectedIdsSet = new Set(selectedParcelIds);
       
       // Haversine distance calculation
       const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -224,8 +226,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return R * c;
       };
       
-      // Filter parcels within display radius
-      const parcelsInRadius = allParcels.filter(parcel => {
+      // Filter parcels: include if within display radius OR already selected in area
+      const parcelsToShow = allParcels.filter(parcel => {
+        // Always show parcels that are already in the area
+        if (selectedIdsSet.has(parcel.id)) {
+          return true;
+        }
+        
+        // Check if within display radius
         const geom = parcel.geometry as any;
         if (!geom || !geom.coordinates || !geom.coordinates[0]) {
           return false;
@@ -252,7 +260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return distance <= area.displayRadiusMeters;
       });
       
-      res.json(parcelsInRadius);
+      res.json(parcelsToShow);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
