@@ -5,6 +5,7 @@ import session from "express-session";
 import MemoryStore from "memorystore";
 import { updateAppSettingsSchema } from "@shared/schema";
 import { z } from "zod";
+import { calculateCentroid, calculateDistance } from "./geomUtils";
 
 // Extend session data type
 declare module "express-session" {
@@ -13,54 +14,10 @@ declare module "express-session" {
   }
 }
 
-// Helper function to calculate distance between two lat/lng points in meters (Haversine formula)
-function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371000; // Earth's radius in meters
-  const φ1 = lat1 * Math.PI / 180;
-  const φ2 = lat2 * Math.PI / 180;
-  const Δφ = (lat2 - lat1) * Math.PI / 180;
-  const Δλ = (lng2 - lng1) * Math.PI / 180;
-
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c; // Distance in meters
-}
-
-// Helper function to calculate parcel centroid from geometry
+// Helper function to calculate parcel centroid from geometry (legacy, kept for compatibility)
 function getParcelCentroid(geometry: any): { lat: number; lng: number } | null {
-  if (!geometry) return null;
-  
-  // Handle both formats: {type: 'Polygon', coordinates: [...]} or {coordinates: [...]}
-  let coordinates = geometry.coordinates;
-  
-  // If geometry has coordinates property, use it
-  if (!coordinates || !Array.isArray(coordinates)) {
-    return null;
-  }
-  
-  // Get the outer ring (first array for Polygon)
-  const ring = Array.isArray(coordinates[0]) ? coordinates[0] : coordinates;
-  
-  if (!ring || ring.length === 0) {
-    return null;
-  }
-  
-  // Calculate centroid - coordinates are in [lng, lat] format (GeoJSON standard)
-  let sumLat = 0, sumLng = 0;
-  ring.forEach((point: number[]) => {
-    if (Array.isArray(point) && point.length >= 2) {
-      sumLng += point[0];  // longitude is first
-      sumLat += point[1];  // latitude is second
-    }
-  });
-  
-  return {
-    lat: sumLat / ring.length,
-    lng: sumLng / ring.length
-  };
+  // Use the shared robust centroid calculation that handles Polygon and MultiPolygon
+  return calculateCentroid(geometry);
 }
 
 // Admin authentication middleware
@@ -232,22 +189,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Area not found" });
       }
       
-      // Get parcels for map display (only id, address, geometry) and selected parcel IDs
-      const allParcels = await storage.getParcelsForMapDisplay();
+      // Calculate generous bounding box for filtering (±0.02 degrees ~ 2.2km)
+      // This ensures we catch all parcels that might intersect the display radius
+      // JavaScript will then filter to exact radius
+      const latRange = 0.02;
+      const minLat = area.centerLat - latRange;
+      const maxLat = area.centerLat + latRange;
+      
+      // Get parcels near the area using bounding box (reduces database load)
+      const nearbyParcels = await storage.getParcelsInBoundingBox(minLat, maxLat, area.centerLng - latRange, area.centerLng + latRange);
+      
+      // Also get parcels already selected in the area
       const selectedParcelIds = await storage.getParcelsInArea(areaId);
       const selectedIdsSet = new Set(selectedParcelIds);
       
-      // Haversine distance calculation
-      const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-        const R = 6371000; // Earth's radius in meters
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-          Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
-      };
+      // Combine nearby parcels with selected parcels
+      const selectedParcels = selectedParcelIds.length > 0 
+        ? await storage.getParcelsByIds(selectedParcelIds)
+        : [];
+      
+      const allParcels = [...nearbyParcels, ...selectedParcels.map(p => ({
+        id: p.id,
+        address: p.address,
+        geometry: p.geometry
+      }))];
       
       // Filter parcels: include if within display radius OR already selected in area
       const parcelsToShow = allParcels.filter(parcel => {
@@ -256,29 +221,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return true;
         }
         
-        // Check if within display radius
-        const geom = parcel.geometry as any;
-        if (!geom || !geom.coordinates || !geom.coordinates[0]) {
+        // Calculate parcel centroid using shared utility (handles Polygon and MultiPolygon)
+        const centroid = calculateCentroid(parcel.geometry);
+        if (!centroid) {
+          console.log("Failed to calculate centroid for parcel:", parcel.id, "geometry type:", typeof parcel.geometry, "value:", JSON.stringify(parcel.geometry).substring(0, 200));
           return false;
         }
-        
-        // Calculate parcel centroid (excluding duplicate closing vertex)
-        const ring = geom.coordinates[0];
-        const uniquePoints = ring.slice(0, -1); // Remove duplicate closing point
-        let sumLat = 0, sumLng = 0;
-        uniquePoints.forEach((point: number[]) => {
-          sumLng += point[0];  // GeoJSON: point[0] is longitude
-          sumLat += point[1];  // GeoJSON: point[1] is latitude
-        });
-        const centroidLat = sumLat / uniquePoints.length;
-        const centroidLng = sumLng / uniquePoints.length;
         
         // Calculate distance from area center
         const distance = calculateDistance(
           area.centerLat,
           area.centerLng,
-          centroidLat,
-          centroidLng
+          centroid.lat,
+          centroid.lng
         );
         
         return distance <= area.displayRadiusMeters;
@@ -286,6 +241,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(parcelsToShow);
     } catch (error: any) {
+      console.error("Error in map-parcels endpoint:", error);
+      console.error("Error stack:", error.stack);
       res.status(500).json({ message: error.message });
     }
   });

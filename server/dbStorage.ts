@@ -1,6 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import fs from "fs/promises";
 import path from "path";
@@ -54,6 +54,7 @@ export interface IStorage {
   
   getAllParcels(): Promise<Parcel[]>;
   getParcelsForMapDisplay(): Promise<Pick<Parcel, 'id' | 'address' | 'geometry'>[]>;
+  getParcelsInBoundingBox(minLat: number, maxLat: number, minLng: number, maxLng: number): Promise<Pick<Parcel, 'id' | 'address' | 'geometry'>[]>;
   getParcelsByIds(ids: string[]): Promise<Parcel[]>;
   getParcelById(id: string): Promise<Parcel | undefined>;
   updateParcel(id: string, updates: UpdateParcel): Promise<Parcel | undefined>;
@@ -191,11 +192,43 @@ export class DbStorage implements IStorage {
   }
 
   async getParcelsForMapDisplay(): Promise<Pick<Parcel, 'id' | 'address' | 'geometry'>[]> {
+    // Fetch only a limited number of parcels to avoid response size limits
+    // The filtering by radius should be done at the route level using this limited set
     return await this.db.select({
       id: parcels.id,
       address: parcels.address,
       geometry: parcels.geometry
-    }).from(parcels);
+    }).from(parcels).limit(10000); // Limit to prevent response overflow
+  }
+  
+  async getParcelsInBoundingBox(minLat: number, maxLat: number, minLng: number, maxLng: number): Promise<Pick<Parcel, 'id' | 'address' | 'geometry'>[]> {
+    // Use parcel ID prefix for efficient filtering
+    // IDs are formatted as "{lat},{lng}-{count}", so we can filter by latitude prefix
+    // Generate all possible lat prefixes in the range (e.g., "42.23", "42.24", "42.25", "42.26")
+    const latPrefixes: string[] = [];
+    const minLatInt = Math.floor(minLat * 100); // e.g., 42.23 -> 4223
+    const maxLatInt = Math.ceil(maxLat * 100);   // e.g., 42.26 -> 4226
+    
+    for (let latInt = minLatInt; latInt <= maxLatInt; latInt++) {
+      const latPrefix = (latInt / 100).toFixed(2); // e.g., 4223 -> "42.23"
+      latPrefixes.push(latPrefix);
+    }
+    
+    // Build OR conditions for all latitude prefixes
+    const conditions = latPrefixes.map(prefix => sql`id LIKE ${prefix + '%'}`);
+    const whereClause = conditions.length > 0 
+      ? sql.join(conditions, sql` OR `)
+      : sql`FALSE`;
+    
+    const result = await this.db.execute<Pick<Parcel, 'id' | 'address' | 'geometry'>>(
+      sql`
+        SELECT id, address, geometry 
+        FROM ${parcels}
+        WHERE ${whereClause}
+        LIMIT 10000
+      `
+    );
+    return result.rows as Pick<Parcel, 'id' | 'address' | 'geometry'>[];
   }
 
   async getParcelsByIds(ids: string[]): Promise<Parcel[]> {
