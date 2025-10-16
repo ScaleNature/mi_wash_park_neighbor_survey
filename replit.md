@@ -8,7 +8,16 @@ The platform features an interactive map displaying property parcels with color-
 
 ## Recent Changes
 
-### October 15, 2025 (Current Session - Areas System)
+### October 16, 2025 (Admin Dashboard Reorganization)
+- **Admin Settings Restructure**: Separated application-level settings from area-specific settings
+  - Application Settings: Only shows App Name, Admin Email, Admin Password
+  - Area Management: New section with dropdown to select areas, displays area-specific settings
+  - Area settings now include: Center Lat/Lng, Default Zoom, Selection Radius, Display Radius
+  - All area settings are fully editable with validation
+  - Added PATCH /api/admin/areas/:areaId endpoint with Zod validation
+  - Added defaultZoom field to Area schema for per-area zoom configuration
+
+### October 15, 2025 (Areas System)
 - **Areas Architecture Implementation**: Redesigned to support multiple nature areas with center-point based parcel selection
   - Created Areas table and AreaParcels junction table for flexible area-parcel relationships
   - Molin Nature Area initialized at center point (42.248002, -83.715407) per user specification

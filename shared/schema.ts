@@ -76,6 +76,7 @@ export const areas = pgTable("areas", {
   name: text("name").notNull().unique(),
   centerLat: real("center_lat").notNull(),
   centerLng: real("center_lng").notNull(),
+  defaultZoom: real("default_zoom").notNull().default(16),
   selectionRadiusMeters: real("selection_radius_meters").notNull().default(200),
   displayRadiusMeters: real("display_radius_meters").notNull().default(1000),
   createdAt: timestamp("created_at").defaultNow(),

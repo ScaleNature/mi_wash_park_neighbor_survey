@@ -86,11 +86,11 @@ export default function AdminPage() {
     if (selectedArea) {
       setAreaCenterLat(selectedArea.centerLat.toString());
       setAreaCenterLng(selectedArea.centerLng.toString());
-      setAreaZoom(settings?.defaultZoom?.toString() || '16');
+      setAreaZoom(selectedArea.defaultZoom.toString());
       setAreaSelectionRadius(selectedArea.selectionRadiusMeters.toString());
       setAreaDisplayRadius(selectedArea.displayRadiusMeters.toString());
     }
-  }, [selectedAreaId, areas, settings]);
+  }, [selectedAreaId, areas]);
 
   // Logout mutation
   const logoutMutation = useMutation({
@@ -171,6 +171,7 @@ export default function AdminPage() {
     const areaData = {
       centerLat: parseFloat(areaCenterLat),
       centerLng: parseFloat(areaCenterLng),
+      defaultZoom: parseFloat(areaZoom),
       selectionRadiusMeters: parseFloat(areaSelectionRadius),
       displayRadiusMeters: parseFloat(areaDisplayRadius),
     };

@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import { updateAppSettingsSchema } from "@shared/schema";
+import { z } from "zod";
 
 // Extend session data type
 declare module "express-session" {
@@ -212,6 +213,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json({ message: "Parcel added to area", inArea: true });
       }
     } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update area settings (protected)
+  app.patch("/api/admin/areas/:areaId", isAdmin, async (req, res) => {
+    try {
+      const { areaId } = req.params;
+      
+      // Validate request body
+      const updateSchema = z.object({
+        centerLat: z.number().min(-90).max(90),
+        centerLng: z.number().min(-180).max(180),
+        defaultZoom: z.number().min(1).max(20),
+        selectionRadiusMeters: z.number().min(1),
+        displayRadiusMeters: z.number().min(1),
+      }).partial();
+      
+      const validated = updateSchema.parse(req.body);
+      
+      const updatedArea = await storage.updateArea(areaId, validated);
+      
+      if (!updatedArea) {
+        return res.status(404).json({ message: "Area not found" });
+      }
+      
+      res.json(updatedArea);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid request data", errors: error.errors });
+      }
       res.status(500).json({ message: error.message });
     }
   });

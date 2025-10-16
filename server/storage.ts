@@ -31,6 +31,7 @@ export interface IStorage {
   getAllAreas(): Promise<Area[]>;
   getAreaById(id: string): Promise<Area | undefined>;
   createArea(area: InsertArea): Promise<Area>;
+  updateArea(id: string, updates: Partial<Omit<Area, 'id' | 'name'>>): Promise<Area | undefined>;
   addParcelToArea(areaId: string, parcelId: string): Promise<void>;
   removeParcelFromArea(areaId: string, parcelId: string): Promise<void>;
   getParcelsInArea(areaId: string): Promise<string[]>;
@@ -220,12 +221,26 @@ export class MemStorage implements IStorage {
       name: insertArea.name,
       centerLat: insertArea.centerLat,
       centerLng: insertArea.centerLng,
+      defaultZoom: insertArea.defaultZoom ?? 16,
       selectionRadiusMeters: insertArea.selectionRadiusMeters ?? 200,
       displayRadiusMeters: insertArea.displayRadiusMeters ?? 1000,
       createdAt: new Date(),
     };
     this.areas.set(id, area);
     return area;
+  }
+
+  async updateArea(id: string, updates: Partial<Omit<Area, 'id' | 'name'>>): Promise<Area | undefined> {
+    const area = this.areas.get(id);
+    if (!area) return undefined;
+    
+    const updated: Area = {
+      ...area,
+      ...updates,
+    };
+    
+    this.areas.set(id, updated);
+    return updated;
   }
 
   async addParcelToArea(areaId: string, parcelId: string): Promise<void> {
