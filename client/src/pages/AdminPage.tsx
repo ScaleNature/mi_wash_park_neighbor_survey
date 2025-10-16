@@ -156,6 +156,8 @@ export default function AdminPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/areas"] });
+      // Invalidate map parcels to reload with new display radius
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/areas", selectedAreaId, "map-parcels"] });
       toast({
         title: "Area settings saved",
         description: "Area settings have been updated successfully",
