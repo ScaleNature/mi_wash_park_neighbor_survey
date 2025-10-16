@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Area, Parcel } from "@shared/schema";
 
 export default function AdminPage() {
+  const isDevelopment = import.meta.env.DEV;
   const [searchTerm, setSearchTerm] = useState('');
   const [appName, setAppName] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
@@ -448,7 +449,9 @@ export default function AdminPage() {
           <CardHeader>
             <CardTitle>Area Management</CardTitle>
             <CardDescription>
-              {areas.length > 0 ? "Select an area to manage or create a new one" : "Create your first nature area"}
+              {isDevelopment 
+                ? (areas.length > 0 ? "Select an area to manage or create a new one" : "Create your first nature area")
+                : "Area definitions are read-only in production"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -470,7 +473,7 @@ export default function AdminPage() {
               </div>
             )}
 
-            {selectedAreaId && (
+            {isDevelopment && selectedAreaId && (
               <div className="space-y-4 pt-4 border-t">
                 <h3 className="font-medium">Edit Selected Area</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -525,8 +528,9 @@ export default function AdminPage() {
               </div>
             )}
 
-            <div className="space-y-4 pt-4 border-t">
-              <h3 className="font-medium">Create New Area</h3>
+            {isDevelopment && (
+              <div className="space-y-4 pt-4 border-t">
+                <h3 className="font-medium">Create New Area</h3>
               <div>
                 <Label htmlFor="new-area-name">Area Name</Label>
                 <Input
@@ -596,7 +600,8 @@ export default function AdminPage() {
                 <Save className="h-4 w-4 mr-2" />
                 {createAreaMutation.isPending ? "Creating..." : "Create Area"}
               </Button>
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
