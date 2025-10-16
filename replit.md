@@ -2,246 +2,72 @@
 
 ## Overview
 
-The Molin Nature Area Neighborhood Support application is a civic engagement platform designed to facilitate community participation in invasive species removal and native habitat restoration. The application enables property owners near Molin Nature Area in Southeast Michigan to indicate their support for park stewardship activities through a survey system. 
-
-The platform features an interactive map displaying property parcels with color-coded status indicators, an educational resource section about invasive species, and a secure admin panel for managing parcel data and survey responses. Access to the survey is controlled through unique nature-themed code phrases assigned to each property parcel.
-
-## Recent Changes
-
-### October 16, 2025 (Full Dataset Integration & Performance Optimization)
-- **Switched to Full Washtenaw County Dataset**: Now loads from washtenaw_parcels_full.geojson (126,639 parcels)
-  - Source data uses State Plane Michigan South (EPSG:2898) coordinate system
-  - Implemented automatic coordinate conversion to WGS84 (lat/lng) using proj4 library
-  - Verified accuracy: Found 1,793 parcels within 1000m of test coordinates (42.247835, -83.715434)
-  
-- **Server-Side Parcel Filtering**: Massive performance improvement for admin map
-  - Created `/api/admin/areas/:areaId/map-parcels` endpoint for server-side filtering
-  - Filters parcels by display radius on server instead of client
-  - **Performance gain**: Returns 24K parcels in 47ms vs 13+ seconds to load all 126K
-  - Admin map now only loads parcels within selected area's display radius
-  
-- **Coordinate System Support**:
-  - Proj4 library automatically converts State Plane coordinates to lat/lng during parcel loading
-  - Projection definition: `+proj=lcc +lat_1=42.1 +lat_2=43.66666666666666 +lat_0=41.5 +lon_0=-84.36666666666666 +x_0=4000000 +y_0=0 +ellps=GRS80 +units=us-ft +no_defs`
-  - All parcel centroids and polygons stored in WGS84 (EPSG:4326) format
-
-- **Admin Map UX Improvements**: Fixed disruptive behaviors during parcel selection
-  - **No popups in admin mode**: Popups now only appear in survey mode, not when clicking parcels in admin view
-  - **Stable map viewport**: Map no longer re-centers/zooms when toggling parcels in/out of an area
-  - **Smart re-centering**: Map still properly re-centers when switching between different areas
-  - Implementation: UpdateMapCenter compares actual center/zoom values (not array references) to prevent unnecessary setView calls
-
-### October 16, 2025 (Earlier - Parcel Loading Bug Fix & Admin Map Improvements)
-- **CRITICAL BUG FIX - Parcel ID Collisions**: Fixed major bug where 347 parcels were being lost
-  - Previous centroid-based ID generation created duplicate IDs when parcels had similar centroids
-  - Map.set() was overwriting parcels with duplicate IDs (1096 features → only 749 loaded)
-  - Fixed by appending unique index to each parcel ID: `P{lat}_{lng}_{index}`
-  - **All 1096 parcels now load correctly** ✅
-  - Note: Existing area-parcel relationships need to be recreated due to new ID format
-
-- **Simplified Parcel Management**: Removed unnecessary manual loading UI
-  - Deleted "Parcel Data" section with "Load Molin Area Parcels" button from admin page
-  - Parcels now auto-load from attached_assets/molin_area_parcels.geojson when server starts
-  - MemStorage constructor calls initializeParcels() to seed 1,096 parcels synchronously
-  - Server logs confirm: "✓ Auto-loaded 1096 parcels from {path}"
-  
-- **Cleaner Admin Interface**: Admin page now only shows essential sections
-  - Application Settings - App Name, Admin Email, Admin Password
-  - Area Management - Create/Edit areas, manage parcels
-  - Map View - Interactive parcel display
-  - Parcel Management Table - View and edit parcel details
-  
-- **Removed Endpoints**: Deleted POST /api/admin/load-molin-parcels (no longer needed)
-
-- **Parcel Center Calculation**: Added automatic parcel center logging on server startup
-  - Actual parcel center: **42.280083, -83.743205** (use this for area creation)
-  - Center is calculated from ALL 1,096 loaded parcels for accurate area positioning
-  - This ensures areas are created at the correct location to display parcels
-
-- **Admin Map Legend Cleanup**: Removed survey-related items from admin map view
-  - Legend now hidden in admin mode (only shows for public survey map)
-  - Removed: No Response, Q1 Support, Full Support, Compost Available indicators
-  - Cleaner admin interface focused on area/parcel management
-
-### October 16, 2025 (Manual Area Management - Final Implementation)
-- **Coordinate Input Streamlining**:
-  - Right-click map copies coordinates in comma-delimited format: "lat,lng" (e.g., "42.248002,-83.715407")
-  - Both Create and Edit forms use single "Center Location (lat,lng)" input field
-  - Automatic parsing with validation and clear error messages for invalid formats
-  - Removed separate latitude/longitude input fields
-
-- **Empty Area Creation**:
-  - Removed Selection Radius field and automatic parcel selection
-  - Areas now start completely empty when created
-  - Admins manually add parcels by left-clicking them on the map
-  - POST /api/admin/areas endpoint creates area without selecting any parcels
-  
-- **Admin Map Display**:
-  - All parcels shown in gray regardless of status (no green coloring in admin mode)
-  - Leaf markers (🍃) appear ONLY on parcels that are in the selected area
-  - Parcels within display radius are clickable to add/remove from area
-  - Left-click toggles parcel in/out of area with instant visual feedback
-  
-- **Admin Page Structure**:
-  1. Application Settings (always visible) - App Name, Admin Email, Admin Password
-  2. Area Management - Create/Edit areas with name, center location (lat,lng), zoom, display radius
-  3. Map View (always visible) - Shows empty when no area selected, displays parcels when area selected
-  4. Parcel Management Table (only when area selected) - Shows parcels in the selected area
-  
-- **Data Flow**:
-  - Parcel queries and mutations scoped to selectedAreaId
-  - Table parcels filtered by area membership
-  - Map parcels flagged as `selected` for leaf marker rendering
-  - Schema updated: removed selectionRadiusMeters column from Areas table
-
-### October 16, 2025 (Earlier - Admin Dashboard Reorganization)
-- **Admin Settings Restructure**: Separated application-level settings from area-specific settings
-  - Application Settings: Only shows App Name, Admin Email, Admin Password
-  - Area Management: New section with dropdown to select areas, displays area-specific settings
-  - Area settings now include: Center Lat/Lng, Default Zoom, Selection Radius, Display Radius
-  - All area settings are fully editable with validation
-  - Added PATCH /api/admin/areas/:areaId endpoint with Zod validation
-  - Added defaultZoom field to Area schema for per-area zoom configuration
-
-### October 15, 2025 (Areas System)
-- **Areas Architecture Implementation**: Redesigned to support multiple nature areas with center-point based parcel selection
-  - Created Areas table and AreaParcels junction table for flexible area-parcel relationships
-  - Molin Nature Area initialized at center point (42.248002, -83.715407) per user specification
-  - Auto-selects parcels within 200m selection radius using Haversine distance calculation
-  - Admin map displays all parcels within 5km display radius with leaf markers (🍃) on selected parcels
-  - Added Area Settings section in admin UI showing center coordinates and radii
-  
-- **Parcel Toggle Functionality**: Click-to-toggle parcel selection in admin map
-  - Click any parcel polygon to add/remove from area
-  - Immediate visual feedback with leaf marker appearance/disappearance
-  - Toast notifications confirm add/remove actions
-  
-- **Survey Access Control**: Restricted to area-member parcels only
-  - Added `isParcelInAnyArea()` storage method
-  - `/api/parcels/verify` endpoint checks area membership before allowing survey access
-  - Returns 403 with clear message if parcel not in any area
-  - Ensures only selected community members can participate
-
-- **Admin Interface Simplification**: Single "Initialize Molin Area" button replaces multiple loading options
-
-### October 15, 2025 (Earlier Session)
-- **Complete Parcel System Integration**: Fully operational parcel-based survey system
-  - 1,096 parcels loaded from Molin area Shapefile with centroid-based IDs (format: "P42.284198_-83.740703")
-  - Survey login uses parcel_id as username with nature phrase authentication
-  - Optional address field added to survey form (users can add/update their addresses)
-  - Map displays all parcels with color-coded status (gray=none, light-green=Q1 support, forest-green=full support)
-  
-- **Admin Parcel Management Features**:
-  - Edit parcel addresses via dialog interface
-  - Regenerate nature phrases per parcel with spinner feedback
-  - Per-row action buttons in admin table
-  - Proper loading states and error handling
-
-- **Enhanced Map Interactions**:
-  - Parcel popups show ID, address (if available), survey status, and compost availability
-  - "Go to Survey" button in popups links directly to survey page
-  - Real parcel data replaces mock data
-
-### October 15, 2025 (Earlier Session)
-- **Admin Settings Redesign**: Replaced 4 separate bounding box fields with cleaner UI
-- **WMS Parcel Overlay**: Added toggleable Washtenaw County GIS parcel boundaries on map
-- **Click-to-Copy Coordinates**: Map click copies lat/lng to clipboard for area definition
-- **Parcel Loading Infrastructure**: Backend/frontend for loading parcels from Shapefile
-  - Nature-themed password generation (e.g., "Ancient Oak Grove", "Luminous Maple Path")
-  - Successfully loaded 1,096 parcels from attached_assets/molin_area_parcels.geojson
-  - Used proj4 library with EPSG:2898 projection to convert State Plane coordinates to WGS84
+The Molin Nature Area Neighborhood Support application is a civic engagement platform designed to facilitate community participation in invasive species removal and native habitat restoration. It enables property owners near the Molin Nature Area in Southeast Michigan to indicate support for park stewardship through a survey system. Key features include an interactive map displaying property parcels with color-coded status, an educational resource section on invasive species, and a secure admin panel for managing parcel data and survey responses. Access to the survey is controlled via unique nature-themed code phrases assigned to each property.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
 
-## Admin Credentials
-
-**Default admin login:**
-- Email: `molin.nature.area.care@gmail.com`
-- Password: `password`
-
-These credentials can be changed through the admin settings page after logging in.
-
 ## System Architecture
 
 ### Frontend Architecture
 
-**Framework**: React with TypeScript using Vite as the build tool and development server
+**Framework**: React with TypeScript, using Vite.
 
-**Routing**: Wouter for client-side routing with four main pages:
-- Map view (home page)
-- Survey participation page
-- Educational resources page
-- Admin dashboard
+**Routing**: Wouter handles client-side routing across map view, survey, educational resources, and admin dashboard.
 
-**UI Component Library**: Radix UI primitives with shadcn/ui components styled using Tailwind CSS with a custom nature-inspired design system featuring:
-- Forest green primary color (142 45% 35%)
-- Deep teal secondary color (158 55% 25%)
-- Custom typography using Inter for UI elements and Merriweather for educational content
-- Both light and dark mode support with HSL color variables
+**UI Component Library**: Radix UI primitives and shadcn/ui components, styled with Tailwind CSS. The design system is nature-inspired, featuring forest green and deep teal, custom typography (Inter for UI, Merriweather for content), and supports both light and dark modes.
 
-**State Management**: TanStack Query (React Query) for server state management with custom query client configuration
+**State Management**: TanStack Query (React Query) manages server state.
 
-**Map Visualization**: Leaflet with React-Leaflet for interactive parcel mapping, displaying property boundaries as polygons with color-coded status indicators (none, light-green for Q1 support, forest-green for full support)
+**Map Visualization**: Leaflet with React-Leaflet provides interactive parcel mapping, displaying property boundaries as color-coded polygons.
 
 ### Backend Architecture
 
-**Runtime**: Node.js with Express server framework
+**Runtime**: Node.js with Express.
 
-**Session Management**: Express-session with MemoryStore for admin authentication, using HTTP-only cookies
+**Session Management**: Express-session with MemoryStore for admin authentication, using HTTP-only cookies.
 
-**Development Setup**: Custom Vite integration middleware for hot module replacement during development, with separate static file serving in production
+**Development Setup**: Custom Vite integration middleware provides hot module replacement.
 
-**Authentication**: Admin access protected by session-based authentication with bcrypt password hashing (SALT_ROUNDS: 10)
+**Authentication**: Session-based admin authentication uses bcrypt for password hashing (SALT_ROUNDS: 10).
 
-**Storage Layer**: Currently using in-memory storage (MemStorage class) with interface designed for easy migration to database persistence (IStorage interface defines CRUD contracts)
+**Storage Layer**: Currently uses in-memory storage (MemStorage class) adhering to an IStorage interface for future database migration.
 
 ### Data Architecture
 
-**Schema Design** (Drizzle ORM with PostgreSQL dialect):
-- Users table: Basic authentication with username/password
-- App Settings table: Configurable application parameters including admin credentials, map center coordinates, and default zoom level
-- Uses UUID primary keys with PostgreSQL's gen_random_uuid()
-- Zod schemas for runtime validation
+**Schema Design**: Drizzle ORM with a PostgreSQL dialect, utilizing UUID primary keys. Zod schemas provide runtime validation.
 
-**Survey Logic**: Three-question survey with specific business rules:
-- Q1: Permission to remove invasive species near property
-- Q2: Interest in assistance for property-based removal
-- Q3: Willingness to share compost bin
-- Status calculation: Q1 Yes only = light-green, Q1 Yes + Q2 Yes = forest-green
+**Survey Logic**: A three-question survey determines property owner support:
+- Q1: Permission for invasive species removal.
+- Q2: Interest in assistance for property-based removal.
+- Q3: Willingness to share a compost bin.
+Parcel status is color-coded based on Q1 and Q2 responses.
 
-**Parcel Management**: Each parcel has:
-- Unique ID and address
-- GeoJSON coordinate arrays for polygon rendering
-- Nature-themed code phrase for access control
-- Survey status and response tracking
-- Optional compost availability flag
+**Parcel Management**: Each parcel has a unique ID, address, GeoJSON coordinates, a nature-themed code phrase for access control, and tracks survey status and responses, including an optional compost availability flag. The system handles a full dataset of 126,639 parcels, converting State Plane Michigan South (EPSG:2898) coordinates to WGS84 (lat/lng) using proj4. Server-side parcel filtering is implemented for performance.
 
-### External Dependencies
+### System Design Choices
 
-**Database**: PostgreSQL via Neon serverless driver (@neondatabase/serverless v0.10.4) - configured but currently using in-memory storage implementation
+The application supports multiple nature areas, with parcel selection based on a center point and radius. Areas are created empty, and parcels are manually added by admins. The admin map displays all parcels within a display radius, with leaf markers indicating parcels within the selected area. Survey access is restricted to parcels belonging to an area.
 
-**Mapping Services**: 
-- Leaflet v1.9.4 for map rendering with React-Leaflet
-- OpenStreetMap tiles via unpkg.com CDN
-- Washtenaw County GIS WMS parcel overlay (services3.arcgis.com/mRwarx73j5FhfOkR) with toggle control
-- Click-to-copy lat/lng coordinates feature for area definition
+## External Dependencies
 
-**UI Framework**: 
-- Radix UI component primitives (v1.x - accordion, dialog, dropdown, etc.)
-- Tailwind CSS for styling with PostCSS processing
+**Database**: PostgreSQL via Neon serverless driver (`@neondatabase/serverless`).
 
-**Authentication**: bcrypt v6.0.0 for password hashing
+**Mapping Services**:
+- Leaflet v1.9.4 with React-Leaflet.
+- OpenStreetMap tiles.
+- Washtenaw County GIS WMS parcel overlay.
+- Proj4 library for coordinate system conversions.
 
-**Form Handling**: React Hook Form with @hookform/resolvers for validation integration
+**UI Framework**: Radix UI component primitives and Tailwind CSS.
 
-**Development Tools**:
-- TypeScript for type safety
-- ESBuild for production bundling
-- Drizzle Kit for database migrations
-- Replit-specific plugins (runtime error overlay, cartographer, dev banner)
+**Authentication**: bcrypt v6.0.0.
 
-**Fonts**: Google Fonts (Inter, Merriweather) loaded via CDN
+**Form Handling**: React Hook Form with `@hookform/resolvers`.
 
-**Session Storage**: memorystore package for development (designed to be replaced with connect-pg-simple for production PostgreSQL session storage)
+**Development Tools**: TypeScript, ESBuild, Drizzle Kit.
+
+**Fonts**: Google Fonts (Inter, Merriweather).
+
+**Session Storage**: `memorystore` (for development, to be replaced with `connect-pg-simple` for production).
