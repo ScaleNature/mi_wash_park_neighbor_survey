@@ -203,26 +203,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const selectedParcelIds = await storage.getParcelsInArea(areaId);
       const selectedIdsSet = new Set(selectedParcelIds);
       
-      // Combine nearby parcels with selected parcels (avoiding duplicates)
-      const selectedParcels = selectedParcelIds.length > 0 
+      // Get assigned parcels (NOT filtered by radius)
+      const assignedParcels = selectedParcelIds.length > 0 
         ? await storage.getParcelsByIds(selectedParcelIds)
         : [];
       
-      // Create a map of parcel ID to parcel to avoid duplicates
-      const parcelMap = new Map();
-      nearbyParcels.forEach(p => parcelMap.set(p.id, p));
-      selectedParcels.forEach(p => parcelMap.set(p.id, { id: p.id, address: p.address, geometry: p.geometry }));
-      
-      const allParcels = Array.from(parcelMap.values());
-      
-      // Filter parcels: include if within display radius OR already selected in area
-      const parcelsToShow = allParcels.filter(parcel => {
-        // Always show parcels that are already in the area
+      // Filter nearby parcels to only those within display radius AND not already assigned
+      const optionalParcels = nearbyParcels.filter(parcel => {
+        // Skip if already assigned
         if (selectedIdsSet.has(parcel.id)) {
-          return true;
+          return false;
         }
         
-        // Calculate parcel centroid using shared utility (handles Polygon and MultiPolygon)
+        // Calculate parcel centroid
         const centroid = calculateCentroid(parcel.geometry);
         if (!centroid) {
           return false;
@@ -239,7 +232,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return distance <= area.displayRadiusMeters;
       });
       
-      res.json(parcelsToShow);
+      // Combine: ALL assigned parcels + optional parcels within radius
+      const allParcels = [
+        ...assignedParcels.map(p => ({ id: p.id, address: p.address, geometry: p.geometry })),
+        ...optionalParcels
+      ];
+      
+      res.json(allParcels);
     } catch (error: any) {
       console.error("Error in map-parcels endpoint:", error);
       console.error("Error stack:", error.stack);
