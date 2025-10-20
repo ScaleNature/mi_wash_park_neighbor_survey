@@ -635,12 +635,12 @@ export default function AdminPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-slate-400 bg-slate-400/50 rounded-sm"></div>
-                    <span>Solid gray = assigned parcels</span>
+                    <span>Solid border = assigned parcels</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-dashed border-slate-300 bg-slate-300/30 rounded-sm"></div>
-                  <span>Dashed light gray = optional parcels (within display radius, not assigned)</span>
+                  <div className="w-4 h-4 border-2 border-dashed border-slate-400 bg-slate-400/50 rounded-sm"></div>
+                  <span>Dashed border = optional parcels (within display radius, not assigned)</span>
                 </div>
               </div>
             )}

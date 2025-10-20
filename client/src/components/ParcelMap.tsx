@@ -106,8 +106,8 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
 
   const getParcelColor = (status: string, adminMode: boolean = false, isSelected: boolean = false) => {
     if (adminMode) {
-      // In admin mode: selected parcels are darker gray, optional parcels are lighter
-      return isSelected ? '#94a3b8' : '#cbd5e1';
+      // In admin mode: use same gray for both assigned and optional parcels
+      return '#94a3b8';
     }
     switch (status) {
       case 'light-green':
@@ -194,7 +194,7 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
               pathOptions={{
                 color: getParcelColor(parcel.status, adminMode, isSelected),
                 fillColor: getParcelColor(parcel.status, adminMode, isSelected),
-                fillOpacity: adminMode && !isSelected ? 0.3 : 0.5,
+                fillOpacity: 0.5,
                 weight: 2,
                 dashArray: adminMode && !isSelected ? '5, 5' : undefined,
                 className: adminMode ? 'cursor-pointer' : ''
