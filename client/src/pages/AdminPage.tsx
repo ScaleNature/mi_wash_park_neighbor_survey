@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Save, LogOut, Leaf, MapPin } from "lucide-react";
+import { Search, Save, LogOut, Leaf, MapPin, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -292,6 +292,20 @@ export default function AdminPage() {
 
   const handleParcelClick = (parcelId: string) => {
     toggleParcelMutation.mutate(parcelId);
+  };
+
+  // Refresh map data - completely re-request assigned and optional parcels
+  const handleRefreshMap = () => {
+    if (!selectedAreaId) return;
+    
+    // Invalidate both queries to force complete re-fetch
+    queryClient.invalidateQueries({ queryKey: ["/api/areas", selectedAreaId, "parcels"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/admin/areas", selectedAreaId, "map-parcels"] });
+    
+    toast({
+      title: "Refreshing map",
+      description: "Re-loading all parcel data...",
+    });
   };
 
   // Helper function to calculate distance between two points
@@ -626,7 +640,23 @@ export default function AdminPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Map View</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <CardTitle>Map View</CardTitle>
+              </div>
+              {selectedAreaId && (
+                <Button
+                  onClick={handleRefreshMap}
+                  variant="outline"
+                  size="sm"
+                  disabled={parcelsLoading}
+                  data-testid="button-refresh-map"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${parcelsLoading ? 'animate-spin' : ''}`} />
+                  Refresh Map
+                </Button>
+              )}
+            </div>
             <CardDescription>
               {selectedAreaId && selectedArea ? (
                 <div className="space-y-1">
