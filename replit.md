@@ -125,6 +125,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+- **Oct 20, 2025**: Enhanced admin map visualization to distinguish optional parcels (within display radius but not assigned) with dashed light gray borders and lighter fill, while assigned parcels show as solid dark gray with green leaf markers
 - **Oct 16, 2024**: Simplified map UI by removing "Hide Parcels" toggle button and adding area dropdown selector for navigation between different nature areas
 - **Oct 16, 2024**: Implemented efficient bounding box filtering for admin map using parcel ID prefixes (resolves Neon 64MB response limit issue)
 - **Oct 16, 2024**: Created shared geometry utilities (`server/geomUtils.ts`) for centroid calculation and distance measurement
