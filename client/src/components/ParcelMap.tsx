@@ -187,6 +187,7 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
         {parcels.map((parcel) => {
           const leafletCoords = swapCoordinates(parcel.coordinates);
           const isSelected = parcel.selected || false;
+          const borderOpacity = adminMode ? (isSelected ? 0.5 : 0.3) : 1.0;
           return (
             <Polygon
               key={parcel.id}
@@ -194,7 +195,8 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
               pathOptions={{
                 color: getParcelColor(parcel.status, adminMode, isSelected),
                 fillColor: getParcelColor(parcel.status, adminMode, isSelected),
-                fillOpacity: 0.5,
+                fillOpacity: adminMode ? 0.35 : 0.5,
+                opacity: borderOpacity,
                 weight: 2,
                 dashArray: adminMode && !isSelected ? '5, 5' : undefined,
                 className: adminMode ? 'cursor-pointer' : ''
