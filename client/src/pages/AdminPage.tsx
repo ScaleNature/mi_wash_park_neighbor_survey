@@ -59,7 +59,7 @@ export default function AdminPage() {
   });
 
   // Get parcels within display radius of selected area (server-side filtered)
-  const { data: parcels = [] } = useQuery<Parcel[]>({
+  const { data: parcels = [], isLoading: parcelsLoading, isFetching: parcelsFetching } = useQuery<Parcel[]>({
     queryKey: ["/api/admin/areas", selectedAreaId, "map-parcels"],
     enabled: !!session?.isAdmin && !!selectedAreaId,
   });
@@ -617,7 +617,14 @@ export default function AdminPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="h-[500px] rounded-md overflow-hidden border">
+            <div className="h-[500px] rounded-md overflow-hidden border relative">
+              {parcelsFetching && (
+                <div className="absolute inset-0 bg-background/50 z-10 flex items-center justify-center">
+                  <div className="bg-card p-4 rounded-md shadow-lg">
+                    <p className="text-sm font-medium">Reloading parcels...</p>
+                  </div>
+                </div>
+              )}
               <ParcelMap 
                 parcels={selectedAreaId ? mapParcels : []}
                 center={selectedArea ? [selectedArea.centerLat, selectedArea.centerLng] : undefined}
