@@ -189,6 +189,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Area not found" });
       }
       
+      // DEBUG: Log area data types
+      console.log(`[map-parcels DEBUG] Area: ${area.name}`);
+      console.log(`[map-parcels DEBUG] centerLat: ${area.centerLat} (type: ${typeof area.centerLat})`);
+      console.log(`[map-parcels DEBUG] centerLng: ${area.centerLng} (type: ${typeof area.centerLng})`);
+      console.log(`[map-parcels DEBUG] displayRadiusMeters: ${area.displayRadiusMeters} (type: ${typeof area.displayRadiusMeters})`);
+      
       // Calculate generous bounding box for filtering (±0.02 degrees ~ 2.2km)
       // This ensures we catch all parcels that might intersect the display radius
       // JavaScript will then filter to exact radius
