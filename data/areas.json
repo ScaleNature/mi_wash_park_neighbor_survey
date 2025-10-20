@@ -6,7 +6,7 @@
       "centerLat": 42.248,
       "centerLng": -83.715,
       "defaultZoom": 16,
-      "displayRadiusMeters": 500,
+      "displayRadiusMeters": 450,
       "parcelIds": [
         "42.247885,-83.714626-30800",
         "42.248091,-83.714632-30801",
@@ -50,6 +50,16 @@
         "42.248220,-83.719575-31040"
       ],
       "createdAt": "2025-10-16T19:59:21.590Z"
+    },
+    {
+      "id": "959c9f04-c146-433b-bcf6-af85d20cf4e5",
+      "name": "Test Plot",
+      "centerLat": 42.24,
+      "centerLng": -83.72,
+      "defaultZoom": 16,
+      "displayRadiusMeters": 400,
+      "parcelIds": [],
+      "createdAt": "2025-10-20T16:02:37.840Z"
     }
   ],
   "version": "1.0",
