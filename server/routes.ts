@@ -238,6 +238,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...optionalParcels
       ];
       
+      console.log(`[map-parcels] Returning ${allParcels.length} parcels: ${assignedParcels.length} assigned + ${optionalParcels.length} optional`);
+      
       res.json(allParcels);
     } catch (error: any) {
       console.error("Error in map-parcels endpoint:", error);

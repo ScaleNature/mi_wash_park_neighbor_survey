@@ -62,6 +62,8 @@ export default function AdminPage() {
   const { data: parcels = [], isLoading: parcelsLoading, isFetching: parcelsFetching } = useQuery<Parcel[]>({
     queryKey: ["/api/admin/areas", selectedAreaId, "map-parcels"],
     enabled: !!session?.isAdmin && !!selectedAreaId,
+    staleTime: 0,
+    gcTime: 0,
   });
 
   // Get the selected area
