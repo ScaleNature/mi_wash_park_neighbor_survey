@@ -457,7 +457,7 @@ export default function AdminPage() {
           <CardContent className="space-y-6">
             {areas.length > 0 && (
               <div>
-                <Label htmlFor="area-select">Select Existing Area</Label>
+                <Label htmlFor="area-select">Current Selected Area</Label>
                 <select
                   id="area-select"
                   value={selectedAreaId}
