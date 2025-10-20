@@ -417,7 +417,17 @@ export class DbStorage implements IStorage {
     try {
       const fileContent = await fs.readFile(AREAS_FILE_PATH, 'utf-8');
       const data: AreaData = JSON.parse(fileContent);
-      this.areaCache = data.areas || [];
+      
+      // Ensure all numeric fields are actually numbers (JSON parsing can leave them as strings)
+      const areas = (data.areas || []).map(area => ({
+        ...area,
+        centerLat: Number(area.centerLat),
+        centerLng: Number(area.centerLng),
+        defaultZoom: Number(area.defaultZoom),
+        displayRadiusMeters: Number(area.displayRadiusMeters),
+      }));
+      
+      this.areaCache = areas;
       console.log(`✓ Loaded ${this.areaCache.length} areas from file`);
       return this.areaCache;
     } catch (error: any) {
@@ -487,7 +497,22 @@ export class DbStorage implements IStorage {
     
     if (index === -1) return undefined;
     
-    areas[index] = { ...areas[index], ...updates };
+    // Ensure numeric fields are stored as numbers, not strings
+    const sanitizedUpdates = { ...updates };
+    if (sanitizedUpdates.centerLat !== undefined) {
+      sanitizedUpdates.centerLat = Number(sanitizedUpdates.centerLat);
+    }
+    if (sanitizedUpdates.centerLng !== undefined) {
+      sanitizedUpdates.centerLng = Number(sanitizedUpdates.centerLng);
+    }
+    if (sanitizedUpdates.defaultZoom !== undefined) {
+      sanitizedUpdates.defaultZoom = Number(sanitizedUpdates.defaultZoom);
+    }
+    if (sanitizedUpdates.displayRadiusMeters !== undefined) {
+      sanitizedUpdates.displayRadiusMeters = Number(sanitizedUpdates.displayRadiusMeters);
+    }
+    
+    areas[index] = { ...areas[index], ...sanitizedUpdates };
     await this.saveAreasToFile(areas);
     
     return areas[index];
