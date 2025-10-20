@@ -627,14 +627,20 @@ export default function AdminPage() {
               />
             </div>
             {selectedAreaId && (
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Leaf className="h-4 w-4 text-primary" />
-                  <span>Leaf markers indicate parcels selected in the area</span>
+              <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Leaf className="h-4 w-4 text-green-600" />
+                    <span>Green leaf markers = assigned parcels</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-slate-400 bg-slate-400/50 rounded-sm"></div>
+                    <span>Solid gray = assigned parcels</span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  <span>Regular polygons show nearby parcels</span>
+                  <div className="w-4 h-4 border-2 border-dashed border-slate-300 bg-slate-300/30 rounded-sm"></div>
+                  <span>Dashed light gray = optional parcels (within display radius, not assigned)</span>
                 </div>
               </div>
             )}

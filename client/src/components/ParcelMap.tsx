@@ -104,9 +104,10 @@ function FitBoundsToParcel({ parcels, swapCoordinates }: { parcels: Parcel[], sw
 export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, adminMode = false }: ParcelMapProps) {
   const mapRef = useRef<LeafletMap>(null);
 
-  const getParcelColor = (status: string, adminMode: boolean = false) => {
+  const getParcelColor = (status: string, adminMode: boolean = false, isSelected: boolean = false) => {
     if (adminMode) {
-      return '#94a3b8';
+      // In admin mode: selected parcels are darker gray, optional parcels are lighter
+      return isSelected ? '#94a3b8' : '#cbd5e1';
     }
     switch (status) {
       case 'light-green':
@@ -185,15 +186,17 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
         />
         {parcels.map((parcel) => {
           const leafletCoords = swapCoordinates(parcel.coordinates);
+          const isSelected = parcel.selected || false;
           return (
             <Polygon
               key={parcel.id}
               positions={leafletCoords}
               pathOptions={{
-                color: getParcelColor(parcel.status, adminMode),
-                fillColor: getParcelColor(parcel.status, adminMode),
-                fillOpacity: 0.5,
+                color: getParcelColor(parcel.status, adminMode, isSelected),
+                fillColor: getParcelColor(parcel.status, adminMode, isSelected),
+                fillOpacity: adminMode && !isSelected ? 0.3 : 0.5,
                 weight: 2,
+                dashArray: adminMode && !isSelected ? '5, 5' : undefined,
                 className: adminMode ? 'cursor-pointer' : ''
               }}
               eventHandlers={adminMode && onParcelClick ? {
