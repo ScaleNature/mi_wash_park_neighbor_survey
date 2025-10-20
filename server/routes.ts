@@ -204,10 +204,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get parcels near the area using bounding box (reduces database load)
       const nearbyParcels = await storage.getParcelsInBoundingBox(minLat, maxLat, area.centerLng - latRange, area.centerLng + latRange);
+      console.log(`[map-parcels DEBUG] Bounding box returned ${nearbyParcels.length} parcels`);
       
       // Also get parcels already selected in the area
       const selectedParcelIds = await storage.getParcelsInArea(areaId);
       const selectedIdsSet = new Set(selectedParcelIds);
+      console.log(`[map-parcels DEBUG] Area has ${selectedParcelIds.length} assigned parcels`);
       
       // Get assigned parcels (NOT filtered by radius)
       const assignedParcels = selectedParcelIds.length > 0 
@@ -215,6 +217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : [];
       
       // Filter nearby parcels to only those within display radius AND not already assigned
+      let debugCount = 0;
       const optionalParcels = nearbyParcels.filter(parcel => {
         // Skip if already assigned
         if (selectedIdsSet.has(parcel.id)) {
@@ -224,6 +227,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Calculate parcel centroid
         const centroid = calculateCentroid(parcel.geometry);
         if (!centroid) {
+          if (debugCount < 3) {
+            console.log(`[map-parcels DEBUG] Parcel ${parcel.id} has no centroid`);
+            debugCount++;
+          }
           return false;
         }
         
@@ -234,6 +241,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           centroid.lat,
           centroid.lng
         );
+        
+        if (debugCount < 3) {
+          console.log(`[map-parcels DEBUG] Parcel ${parcel.id}: distance = ${distance.toFixed(1)}m, displayRadius = ${area.displayRadiusMeters}m, within? ${distance <= area.displayRadiusMeters}`);
+          debugCount++;
+        }
         
         return distance <= area.displayRadiusMeters;
       });
