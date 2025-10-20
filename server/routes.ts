@@ -203,16 +203,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const selectedParcelIds = await storage.getParcelsInArea(areaId);
       const selectedIdsSet = new Set(selectedParcelIds);
       
-      // Combine nearby parcels with selected parcels
+      // Combine nearby parcels with selected parcels (avoiding duplicates)
       const selectedParcels = selectedParcelIds.length > 0 
         ? await storage.getParcelsByIds(selectedParcelIds)
         : [];
       
-      const allParcels = [...nearbyParcels, ...selectedParcels.map(p => ({
-        id: p.id,
-        address: p.address,
-        geometry: p.geometry
-      }))];
+      // Create a map of parcel ID to parcel to avoid duplicates
+      const parcelMap = new Map();
+      nearbyParcels.forEach(p => parcelMap.set(p.id, p));
+      selectedParcels.forEach(p => parcelMap.set(p.id, { id: p.id, address: p.address, geometry: p.geometry }));
+      
+      const allParcels = Array.from(parcelMap.values());
       
       // Filter parcels: include if within display radius OR already selected in area
       const parcelsToShow = allParcels.filter(parcel => {
@@ -224,7 +225,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Calculate parcel centroid using shared utility (handles Polygon and MultiPolygon)
         const centroid = calculateCentroid(parcel.geometry);
         if (!centroid) {
-          console.log("Failed to calculate centroid for parcel:", parcel.id, "geometry type:", typeof parcel.geometry, "value:", JSON.stringify(parcel.geometry).substring(0, 200));
           return false;
         }
         
