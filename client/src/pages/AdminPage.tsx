@@ -58,20 +58,35 @@ export default function AdminPage() {
     enabled: !!session?.isAdmin,
   });
 
-  // Get parcels within display radius of selected area (server-side filtered)
-  const { data: parcels = [], isLoading: parcelsLoading, isFetching: parcelsFetching } = useQuery<Parcel[]>({
+  // Get the selected area
+  const selectedArea = areas.find(a => a.id === selectedAreaId) || null;
+  
+  // Get list of assigned parcel IDs (Step 1 data)
+  const { data: selectedParcelIds = [], isLoading: selectedIdsLoading } = useQuery<string[]>({
+    queryKey: ["/api/areas", selectedAreaId, "parcels"],
+    enabled: !!session?.isAdmin && !!selectedAreaId,
+  });
+
+  // Fetch all parcels (assigned + optional) from the server in one call
+  const { data: allMapParcels = [], isLoading: allParcelsLoading, isFetching: allParcelsFetching } = useQuery<Parcel[]>({
     queryKey: ["/api/admin/areas", selectedAreaId, "map-parcels"],
     enabled: !!session?.isAdmin && !!selectedAreaId,
     staleTime: 0,
     gcTime: 0,
   });
 
-  // Get the selected area
-  const selectedArea = areas.find(a => a.id === selectedAreaId) || null;
-  const { data: selectedParcelIds = [] } = useQuery<string[]>({
-    queryKey: ["/api/areas", selectedAreaId, "parcels"],
-    enabled: !!session?.isAdmin && !!selectedAreaId,
-  });
+  // Step 1: Extract assigned parcels (only after selectedParcelIds is loaded)
+  const assignedParcels = selectedIdsLoading ? [] : allMapParcels.filter(p => selectedParcelIds.includes(p.id));
+  const assignedLoading = selectedIdsLoading || allParcelsLoading;
+
+  // Step 2: Extract optional parcels (only after selectedParcelIds is loaded)
+  const optionalParcels = selectedIdsLoading ? [] : allMapParcels.filter(p => !selectedParcelIds.includes(p.id));
+  const optionalLoading = selectedIdsLoading || allParcelsLoading;
+
+  // Combine for map display (only show parcels after selectedParcelIds is loaded to prevent incorrect styling)
+  const parcels = selectedIdsLoading ? [] : allMapParcels;
+  const parcelsLoading = selectedIdsLoading || allParcelsLoading;
+  const parcelsFetching = allParcelsFetching;
 
   // Load settings into form when fetched
   useEffect(() => {
@@ -159,7 +174,7 @@ export default function AdminPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/areas"] });
-      // Invalidate map parcels to reload with new display radius
+      // Invalidate map parcels query to reload with new display radius
       queryClient.invalidateQueries({ queryKey: ["/api/admin/areas", selectedAreaId, "map-parcels"] });
       toast({
         title: "Area settings saved",
@@ -258,7 +273,9 @@ export default function AdminPage() {
       return await res.json();
     },
     onSuccess: (data: any, parcelId: string) => {
+      // Invalidate all parcel-related queries to refresh the map
       queryClient.invalidateQueries({ queryKey: ["/api/areas", selectedAreaId, "parcels"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/areas", selectedAreaId, "map-parcels"] });
       toast({
         title: data.inArea ? "Parcel added to area" : "Parcel removed from area",
         description: `Parcel ${parcelId} ${data.inArea ? 'is now' : 'is no longer'} in the area`,
@@ -612,7 +629,26 @@ export default function AdminPage() {
             <CardTitle>Map View</CardTitle>
             <CardDescription>
               {selectedAreaId && selectedArea ? (
-                `Showing ${parcels.length} parcels within ${selectedArea.displayRadiusMeters}m display radius, ${selectedParcelIds.length} parcels selected in area`
+                <div className="space-y-1">
+                  <div>
+                    {assignedLoading ? (
+                      <span className="text-muted-foreground">Loading assigned parcels...</span>
+                    ) : (
+                      <span>
+                        <span className="font-semibold text-foreground">Step 1:</span> Showing {assignedParcels.length} assigned parcels
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    {!assignedLoading && optionalLoading ? (
+                      <span className="text-muted-foreground">Loading optional parcels within {selectedArea.displayRadiusMeters}m...</span>
+                    ) : !assignedLoading ? (
+                      <span>
+                        <span className="font-semibold text-foreground">Step 2:</span> Showing {optionalParcels.length} optional parcels within {selectedArea.displayRadiusMeters}m radius
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
               ) : (
                 "Select an area to view parcels on the map"
               )}

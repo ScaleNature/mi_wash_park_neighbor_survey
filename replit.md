@@ -125,8 +125,12 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+- **Oct 20, 2025**: Implemented two-step loading UI for admin map with separate status messages: "Step 1: Showing X assigned parcels" and "Step 2: Showing Y optional parcels within Zm radius"
+- **Oct 20, 2025**: Optimized admin map to fetch parcels once and split client-side instead of duplicate API calls, improving performance
+- **Oct 20, 2025**: Enhanced parcel rendering with better visibility - increased fill opacity to 35%, solid borders (50% opacity) for assigned parcels, dashed borders (30% opacity) for optional parcels
+- **Oct 20, 2025**: Fixed cache invalidation to ensure map updates immediately after parcel toggle operations
 - **Oct 20, 2025**: Fixed backend duplicate parcel issue in map-parcels endpoint by using Map for deduplication
-- **Oct 20, 2025**: Enhanced admin map visualization to distinguish optional parcels (within display radius but not assigned) with dashed light gray borders (30% opacity, #cbd5e1) and lighter fill, while assigned parcels show as solid dark gray borders (50% opacity, #94a3b8) with green leaf markers
+- **Oct 20, 2025**: Enhanced admin map visualization to distinguish optional parcels (within display radius but not assigned) with dashed light gray borders and lighter fill, while assigned parcels show as solid dark gray borders with green leaf markers
 - **Oct 16, 2024**: Simplified map UI by removing "Hide Parcels" toggle button and adding area dropdown selector for navigation between different nature areas
 - **Oct 16, 2024**: Implemented efficient bounding box filtering for admin map using parcel ID prefixes (resolves Neon 64MB response limit issue)
 - **Oct 16, 2024**: Created shared geometry utilities (`server/geomUtils.ts`) for centroid calculation and distance measurement
