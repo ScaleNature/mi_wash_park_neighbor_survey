@@ -202,19 +202,29 @@ export class DbStorage implements IStorage {
   }
   
   async getParcelsInBoundingBox(minLat: number, maxLat: number, minLng: number, maxLng: number): Promise<Pick<Parcel, 'id' | 'address' | 'geometry'>[]> {
-    // Extract latitude and longitude from ID and filter by bounding box
-    // IDs are formatted as "{lat},{lng}-{count}"
-    // We extract the lat/lng portions and compare numerically
+    // Use parcel ID prefix for efficient filtering
+    // IDs are formatted as "{lat},{lng}-{count}", so we can filter by latitude prefix
+    // Generate all possible lat prefixes in the range (e.g., "42.23", "42.24", "42.25", "42.26")
+    const latPrefixes: string[] = [];
+    const minLatInt = Math.floor(minLat * 100); // e.g., 42.23 -> 4223
+    const maxLatInt = Math.ceil(maxLat * 100);   // e.g., 42.26 -> 4226
+    
+    for (let latInt = minLatInt; latInt <= maxLatInt; latInt++) {
+      const latPrefix = (latInt / 100).toFixed(2); // e.g., 4223 -> "42.23"
+      latPrefixes.push(latPrefix);
+    }
+    
+    // Build OR conditions for all latitude prefixes
+    const conditions = latPrefixes.map(prefix => sql`id LIKE ${prefix + '%'}`);
+    const whereClause = conditions.length > 0 
+      ? sql.join(conditions, sql` OR `)
+      : sql`FALSE`;
     
     const result = await this.db.execute<Pick<Parcel, 'id' | 'address' | 'geometry'>>(
       sql`
         SELECT id, address, geometry 
         FROM ${parcels}
-        WHERE 
-          CAST(SPLIT_PART(id, ',', 1) AS DOUBLE PRECISION) >= ${minLat}
-          AND CAST(SPLIT_PART(id, ',', 1) AS DOUBLE PRECISION) <= ${maxLat}
-          AND CAST(SPLIT_PART(SPLIT_PART(id, ',', 2), '-', 1) AS DOUBLE PRECISION) >= ${minLng}
-          AND CAST(SPLIT_PART(SPLIT_PART(id, ',', 2), '-', 1) AS DOUBLE PRECISION) <= ${maxLng}
+        WHERE ${whereClause}
         LIMIT 10000
       `
     );
