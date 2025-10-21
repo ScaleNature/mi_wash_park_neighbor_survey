@@ -5,7 +5,7 @@
       "name": "Molin Nature Area",
       "centerLat": 42.248,
       "centerLng": -83.715,
-      "defaultZoom": 16,
+      "defaultZoom": 17,
       "displayRadiusMeters": 250,
       "parcelIds": [
         "42.247885,-83.714626-30800",
@@ -55,7 +55,7 @@
       "name": "Test Plot",
       "centerLat": 42.240036,
       "centerLng": -83.721539,
-      "defaultZoom": 16,
+      "defaultZoom": 18,
       "displayRadiusMeters": 180,
       "parcelIds": [
         "42.240764,-83.721084-34334",
