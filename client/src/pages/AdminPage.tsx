@@ -19,6 +19,7 @@ export default function AdminPage() {
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [selectedAreaId, setSelectedAreaId] = useState<string>('');
+  const [areaName, setAreaName] = useState('');
   const [areaCenterLocation, setAreaCenterLocation] = useState('');
   const [areaZoom, setAreaZoom] = useState('');
   const [areaDisplayRadius, setAreaDisplayRadius] = useState('');
@@ -107,6 +108,7 @@ export default function AdminPage() {
   useEffect(() => {
     const selectedArea = areas.find(a => a.id === selectedAreaId);
     if (selectedArea) {
+      setAreaName(selectedArea.name);
       setAreaCenterLocation(`${selectedArea.centerLat},${selectedArea.centerLng}`);
       setAreaZoom(selectedArea.defaultZoom.toString());
       setAreaDisplayRadius(selectedArea.displayRadiusMeters.toString());
@@ -191,6 +193,15 @@ export default function AdminPage() {
   });
 
   const handleSaveAreaSettings = () => {
+    if (!areaName.trim()) {
+      toast({
+        title: "Invalid name",
+        description: "Area name cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const [lat, lng] = areaCenterLocation.split(',').map(s => s.trim());
     const centerLat = parseFloat(lat);
     const centerLng = parseFloat(lng);
@@ -205,6 +216,7 @@ export default function AdminPage() {
     }
     
     const areaData = {
+      name: areaName,
       centerLat,
       centerLng,
       defaultZoom: parseFloat(areaZoom),
@@ -510,6 +522,18 @@ export default function AdminPage() {
             {isDevelopment && selectedAreaId && (
               <div className="space-y-4 pt-4 border-t">
                 <h3 className="font-medium">Edit Selected Area</h3>
+                <div>
+                  <Label htmlFor="area-name">Area Name</Label>
+                  <Input
+                    id="area-name"
+                    type="text"
+                    value={areaName}
+                    onChange={(e) => setAreaName(e.target.value)}
+                    className="mt-2"
+                    placeholder="e.g., Molin Nature Area"
+                    data-testid="input-area-name"
+                  />
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="area-center-location">Center Location (lat,lng)</Label>
