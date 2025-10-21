@@ -3,9 +3,11 @@ import { Leaf, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
 export default function Header() {
   const [location] = useLocation();
+  const [sheetOpen, setSheetOpen] = useState(false);
   
   const { data: settings } = useQuery<{ appName: string }>({
     queryKey: ["/api/settings"],
@@ -41,7 +43,7 @@ export default function Header() {
           ))}
         </nav>
 
-        <Sheet>
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
           <SheetTrigger asChild className="md:hidden ml-auto">
             <Button variant="ghost" size="icon" data-testid="button-menu">
               <Menu className="h-5 w-5" />
@@ -57,6 +59,7 @@ export default function Header() {
                     variant={location === item.href ? "default" : "ghost"}
                     className="w-full justify-start"
                     data-testid={`link-mobile-${item.label.toLowerCase().replace(" ", "-")}`}
+                    onClick={() => setSheetOpen(false)}
                   >
                     {item.label}
                   </Button>
