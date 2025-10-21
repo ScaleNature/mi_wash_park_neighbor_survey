@@ -45,8 +45,11 @@ export const parcels = pgTable("parcels", {
   codePhrase: text("code_phrase").notNull(),
   geometry: jsonb("geometry").notNull(),
   q1Response: boolean("q1_response"),
+  q1Comment: text("q1_comment"),
   q2Response: boolean("q2_response"),
+  q2Comment: text("q2_comment"),
   q3Response: boolean("q3_response"),
+  q3Comment: text("q3_comment"),
   responseDate: timestamp("response_date"),
   createdAt: timestamp("created_at").defaultNow(),
 });
