@@ -37,6 +37,11 @@ function calculateStatus(q1?: boolean | null, q2?: boolean | null): ParcelStatus
 export default function MapPage() {
   const [, setLocation] = useLocation();
   
+  // Check if user is logged in as admin
+  const { data: session } = useQuery<{ isAdmin: boolean }>({
+    queryKey: ["/api/admin/session"],
+  });
+
   const { data: areas } = useQuery<Area[]>({
     queryKey: ["/api/areas"],
   });
@@ -120,7 +125,7 @@ export default function MapPage() {
         center={center} 
         zoom={zoom}
         fitBounds={showAllAreas}
-        onParcelClick={handleParcelClick}
+        onParcelClick={session?.isAdmin ? handleParcelClick : undefined}
       />
     </div>
   );
