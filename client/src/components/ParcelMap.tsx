@@ -203,16 +203,16 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
                 opacity: borderOpacity,
                 weight: 2,
                 dashArray: adminMode && !isSelected ? '5, 5' : undefined,
-                className: adminMode ? 'cursor-pointer' : ''
+                className: onParcelClick ? 'cursor-pointer' : ''
               }}
-              eventHandlers={adminMode && onParcelClick ? {
+              eventHandlers={onParcelClick ? {
                 click: (e) => {
                   e.originalEvent.stopPropagation();
                   onParcelClick(parcel.id);
                 }
               } : undefined}
             >
-            {!adminMode && (
+            {!adminMode && !onParcelClick && (
               <Popup>
                 <div className="p-2 space-y-2" data-testid={`popup-parcel-${parcel.id}`}>
                   <div>

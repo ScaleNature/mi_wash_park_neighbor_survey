@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { LatLngExpression } from 'leaflet';
 import { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useLocation } from 'wouter';
 
 type ParcelStatus = 'none' | 'light-green' | 'forest-green';
 
@@ -34,15 +35,11 @@ function calculateStatus(q1?: boolean | null, q2?: boolean | null): ParcelStatus
 }
 
 export default function MapPage() {
+  const [, setLocation] = useLocation();
+  
   const { data: areas } = useQuery<Area[]>({
     queryKey: ["/api/areas"],
   });
-
-  const { data: adminSession } = useQuery<{ isAdmin: boolean }>({
-    queryKey: ["/api/admin/session"],
-  });
-
-  const isAdmin = adminSession?.isAdmin || false;
 
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>("all");
 
@@ -70,11 +67,11 @@ export default function MapPage() {
     address: p.address || undefined,
     status: calculateStatus(p.q1Response, p.q2Response),
     hasCompost: p.q3Response || false,
-    selected: true,
-    q1Response: p.q1Response,
-    q2Response: p.q2Response,
-    q3Response: p.q3Response,
   })) || [];
+
+  const handleParcelClick = (parcelId: string) => {
+    setLocation(`/survey?parcelId=${encodeURIComponent(parcelId)}`);
+  };
 
   if (isLoading) {
     return (
@@ -123,7 +120,7 @@ export default function MapPage() {
         center={center} 
         zoom={zoom}
         fitBounds={showAllAreas}
-        adminMode={isAdmin}
+        onParcelClick={handleParcelClick}
       />
     </div>
   );
