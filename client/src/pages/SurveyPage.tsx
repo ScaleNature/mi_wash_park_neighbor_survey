@@ -5,7 +5,7 @@ import CodePhraseEntry from "@/components/CodePhraseEntry";
 import SurveyForm, { SurveyData } from "@/components/SurveyForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2 } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function SurveyPage() {
@@ -49,6 +49,10 @@ export default function SurveyPage() {
         q3Response: data.question3 === 'yes',
         q3Comment: data.question3Comment,
       });
+      
+      // Invalidate caches so the map updates immediately
+      await queryClient.invalidateQueries({ queryKey: ['/api/survey/parcels'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/parcels', parcelId] });
       
       setSubmitted(true);
       toast({
