@@ -89,10 +89,10 @@
     {
       "id": "31380ff7-dbd6-44fb-9f77-c0b84ac32fac",
       "name": "Verification Test Area",
-      "centerLat": 42.24,
-      "centerLng": -83.72,
+      "centerLat": 42.253235,
+      "centerLng": -83.695414,
       "defaultZoom": 16,
-      "displayRadiusMeters": 450,
+      "displayRadiusMeters": 200,
       "parcelIds": [],
       "createdAt": "2025-10-20T16:55:15.779Z"
     }
