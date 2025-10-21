@@ -202,33 +202,48 @@ export class DbStorage implements IStorage {
   }
   
   async getParcelsInBoundingBox(minLat: number, maxLat: number, minLng: number, maxLng: number): Promise<Pick<Parcel, 'id' | 'address' | 'geometry'>[]> {
-    // Use parcel ID prefix for efficient filtering
-    // IDs are formatted as "{lat},{lng}-{count}", so we can filter by latitude prefix
-    // Generate all possible lat prefixes in the range (e.g., "42.23", "42.24", "42.25", "42.26")
+    // Parcel IDs are formatted as "{lat},{lng}-{count}"
+    // We use latitude prefix matching for efficient filtering, then filter precisely by coordinates
+    
+    // Generate latitude prefixes covering the bounding box range
+    // Use precision of 2 decimal places for initial filtering (e.g., "42.24")
     const latPrefixes: string[] = [];
-    const minLatInt = Math.floor(minLat * 100); // e.g., 42.23 -> 4223
-    const maxLatInt = Math.ceil(maxLat * 100);   // e.g., 42.26 -> 4226
+    const minLatInt = Math.floor(minLat * 100);
+    const maxLatInt = Math.ceil(maxLat * 100);
     
     for (let latInt = minLatInt; latInt <= maxLatInt; latInt++) {
-      const latPrefix = (latInt / 100).toFixed(2); // e.g., 4223 -> "42.23"
+      const latPrefix = (latInt / 100).toFixed(2);
       latPrefixes.push(latPrefix);
     }
     
-    // Build OR conditions for all latitude prefixes
+    // Build OR conditions for latitude prefix matching
     const conditions = latPrefixes.map(prefix => sql`id LIKE ${prefix + '%'}`);
     const whereClause = conditions.length > 0 
       ? sql.join(conditions, sql` OR `)
       : sql`FALSE`;
     
+    // Fetch all parcels matching latitude prefixes (no LIMIT for deterministic results)
     const result = await this.db.execute<Pick<Parcel, 'id' | 'address' | 'geometry'>>(
       sql`
         SELECT id, address, geometry 
         FROM ${parcels}
         WHERE ${whereClause}
-        LIMIT 10000
       `
     );
-    return result.rows as Pick<Parcel, 'id' | 'address' | 'geometry'>[];
+    
+    // Filter parcels precisely by parsing their coordinates from ID and checking bounding box
+    const filtered = (result.rows as Pick<Parcel, 'id' | 'address' | 'geometry'>[]).filter(parcel => {
+      // Parse coordinates from ID format: "{lat},{lng}-{count}"
+      const coordPart = parcel.id.split('-')[0];
+      const [latStr, lngStr] = coordPart.split(',');
+      const lat = parseFloat(latStr);
+      const lng = parseFloat(lngStr);
+      
+      // Check if coordinates fall within bounding box
+      return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
+    });
+    
+    return filtered;
   }
 
   async getParcelsByIds(ids: string[]): Promise<Parcel[]> {

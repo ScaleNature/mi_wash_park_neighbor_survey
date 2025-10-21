@@ -5,7 +5,7 @@ import session from "express-session";
 import MemoryStore from "memorystore";
 import { updateAppSettingsSchema } from "@shared/schema";
 import { z } from "zod";
-import { calculateCentroid, calculateDistance } from "./geomUtils";
+import { calculateCentroid, calculateDistance, calculateBoundingBox } from "./geomUtils";
 
 // Extend session data type
 declare module "express-session" {
@@ -189,68 +189,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Area not found" });
       }
       
-      // DEBUG: Log area data types
-      console.log(`[map-parcels DEBUG] Area: ${area.name}`);
-      console.log(`[map-parcels DEBUG] centerLat: ${area.centerLat} (type: ${typeof area.centerLat})`);
-      console.log(`[map-parcels DEBUG] centerLng: ${area.centerLng} (type: ${typeof area.centerLng})`);
-      console.log(`[map-parcels DEBUG] displayRadiusMeters: ${area.displayRadiusMeters} (type: ${typeof area.displayRadiusMeters})`);
+      console.log(`[map-parcels] Area: ${area.name}`);
+      console.log(`[map-parcels] Center: ${area.centerLat}, ${area.centerLng}`);
+      console.log(`[map-parcels] Display radius: ${area.displayRadiusMeters}m`);
       
-      // Calculate generous bounding box for filtering (±0.02 degrees ~ 2.2km)
-      // This ensures we catch all parcels that might intersect the display radius
-      // JavaScript will then filter to exact radius
-      const latRange = 0.02;
-      const minLat = area.centerLat - latRange;
-      const maxLat = area.centerLat + latRange;
+      // Calculate dynamic bounding box based on displayRadiusMeters
+      const bbox = calculateBoundingBox(area.centerLat, area.centerLng, area.displayRadiusMeters);
+      console.log(`[map-parcels] Bounding box: lat ${bbox.minLat.toFixed(6)} to ${bbox.maxLat.toFixed(6)}, lng ${bbox.minLng.toFixed(6)} to ${bbox.maxLng.toFixed(6)}`);
       
-      // Get parcels near the area using bounding box (reduces database load)
-      const nearbyParcels = await storage.getParcelsInBoundingBox(minLat, maxLat, area.centerLng - latRange, area.centerLng + latRange);
-      console.log(`[map-parcels DEBUG] Bounding box returned ${nearbyParcels.length} parcels`);
+      // Get parcels in bounding box (optional parcels - deterministic square area)
+      const nearbyParcels = await storage.getParcelsInBoundingBox(bbox.minLat, bbox.maxLat, bbox.minLng, bbox.maxLng);
+      console.log(`[map-parcels] Bounding box returned ${nearbyParcels.length} parcels`);
       
-      // Also get parcels already selected in the area
+      // Get parcels already assigned to the area
       const selectedParcelIds = await storage.getParcelsInArea(areaId);
       const selectedIdsSet = new Set(selectedParcelIds);
-      console.log(`[map-parcels DEBUG] Area has ${selectedParcelIds.length} assigned parcels`);
+      console.log(`[map-parcels] Area has ${selectedParcelIds.length} assigned parcels`);
       
-      // Get assigned parcels (NOT filtered by radius)
+      // Get full data for assigned parcels (NOT filtered by radius - show all assigned regardless of distance)
       const assignedParcels = selectedParcelIds.length > 0 
         ? await storage.getParcelsByIds(selectedParcelIds)
         : [];
       
-      // Filter nearby parcels to only those within display radius AND not already assigned
-      let debugCount = 0;
-      const optionalParcels = nearbyParcels.filter(parcel => {
-        // Skip if already assigned
-        if (selectedIdsSet.has(parcel.id)) {
-          return false;
-        }
-        
-        // Calculate parcel centroid
-        const centroid = calculateCentroid(parcel.geometry);
-        if (!centroid) {
-          if (debugCount < 3) {
-            console.log(`[map-parcels DEBUG] Parcel ${parcel.id} has no centroid`);
-            debugCount++;
-          }
-          return false;
-        }
-        
-        // Calculate distance from area center
-        const distance = calculateDistance(
-          area.centerLat,
-          area.centerLng,
-          centroid.lat,
-          centroid.lng
-        );
-        
-        if (debugCount < 3) {
-          console.log(`[map-parcels DEBUG] Parcel ${parcel.id}: distance = ${distance.toFixed(1)}m, displayRadius = ${area.displayRadiusMeters}m, within? ${distance <= area.displayRadiusMeters}`);
-          debugCount++;
-        }
-        
-        return distance <= area.displayRadiusMeters;
-      });
+      // Filter optional parcels to exclude already-assigned ones
+      const optionalParcels = nearbyParcels.filter(parcel => !selectedIdsSet.has(parcel.id));
       
-      // Combine: ALL assigned parcels + optional parcels within radius
+      // Combine: ALL assigned parcels + optional parcels in bounding box
       const allParcels = [
         ...assignedParcels.map(p => ({ id: p.id, address: p.address, geometry: p.geometry })),
         ...optionalParcels
