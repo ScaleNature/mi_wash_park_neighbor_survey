@@ -276,6 +276,7 @@ export default function AdminPage() {
       // Invalidate all parcel-related queries to refresh the map
       queryClient.invalidateQueries({ queryKey: ["/api/areas", selectedAreaId, "parcels"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/areas", selectedAreaId, "map-parcels"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/survey/parcels"] });
       toast({
         title: data.inArea ? "Parcel added to area" : "Parcel removed from area",
         description: `Parcel ${parcelId} ${data.inArea ? 'is now' : 'is no longer'} in the area`,
