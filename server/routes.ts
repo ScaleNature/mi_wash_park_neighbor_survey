@@ -555,11 +555,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get parcel data by ID
+  app.get("/api/parcels/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const parcel = await storage.getParcelById(id);
+      
+      if (!parcel) {
+        return res.status(404).json({ message: "Parcel not found" });
+      }
+      
+      res.json(parcel);
+    } catch (error) {
+      console.error("Error fetching parcel:", error);
+      res.status(500).json({ message: "Failed to fetch parcel" });
+    }
+  });
+
   // Submit survey for parcel
   app.post("/api/parcels/:id/survey", async (req, res) => {
     try {
       const { id } = req.params;
-      const { address, q1Response, q2Response, q3Response } = req.body;
+      const { address, q1Response, q1Comment, q2Response, q2Comment, q3Response, q3Comment } = req.body;
       
       const updates: any = {
         q1Response,
@@ -571,6 +588,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Include address if provided
       if (address) {
         updates.address = address;
+      }
+      
+      // Include comments if provided
+      if (q1Comment !== undefined) {
+        updates.q1Comment = q1Comment;
+      }
+      if (q2Comment !== undefined) {
+        updates.q2Comment = q2Comment;
+      }
+      if (q3Comment !== undefined) {
+        updates.q3Comment = q3Comment;
       }
       
       const parcel = await storage.updateParcel(id, updates);
