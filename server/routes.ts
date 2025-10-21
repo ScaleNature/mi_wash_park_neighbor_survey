@@ -215,8 +215,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const optionalParcels = nearbyParcels.filter(parcel => !selectedIdsSet.has(parcel.id));
       
       // Combine: ALL assigned parcels + optional parcels in bounding box
+      // Return full parcel objects with all fields (codePhrase, survey responses, etc.)
       const allParcels = [
-        ...assignedParcels.map(p => ({ id: p.id, address: p.address, geometry: p.geometry })),
+        ...assignedParcels,
         ...optionalParcels
       ];
       
