@@ -66,11 +66,6 @@ export default function MapPage() {
     hasCompost: p.q3Response || false,
   })) || [];
 
-  console.log('[MapPage] Total parcels received:', parcelsData?.length);
-  console.log('[MapPage] Total parcels mapped:', parcels.length);
-  console.log('[MapPage] Third area parcels:', parcels.filter(p => p.id.startsWith('42.25')).length);
-  console.log('[MapPage] Sample third area parcels:', parcels.filter(p => p.id.startsWith('42.25')).slice(0, 3).map(p => p.id));
-
   if (isLoading) {
     return (
       <div className="h-[calc(100vh-4rem)] flex items-center justify-center">
