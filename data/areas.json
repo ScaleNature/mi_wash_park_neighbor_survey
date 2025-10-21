@@ -114,7 +114,7 @@
       "name": "Rose Park",
       "centerLat": 42.243985,
       "centerLng": -83.711915,
-      "defaultZoom": 18,
+      "defaultZoom": 17,
       "displayRadiusMeters": 250,
       "parcelIds": [
         "42.243672,-83.712531-35247",
