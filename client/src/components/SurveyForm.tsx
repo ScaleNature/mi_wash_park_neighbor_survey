@@ -23,18 +23,31 @@ interface SurveyFormProps {
   isSubmitting?: boolean;
   initialAddress?: string | null;
   initialQ1?: boolean | null;
+  initialQ1Comment?: string | null;
   initialQ2?: boolean | null;
+  initialQ2Comment?: string | null;
   initialQ3?: boolean | null;
+  initialQ3Comment?: string | null;
 }
 
-export default function SurveyForm({ onSubmit, isSubmitting = false, initialAddress, initialQ1, initialQ2, initialQ3 }: SurveyFormProps) {
+export default function SurveyForm({ 
+  onSubmit, 
+  isSubmitting = false, 
+  initialAddress, 
+  initialQ1, 
+  initialQ1Comment, 
+  initialQ2, 
+  initialQ2Comment, 
+  initialQ3, 
+  initialQ3Comment 
+}: SurveyFormProps) {
   const [address, setAddress] = useState(initialAddress || '');
   const [q1, setQ1] = useState<'yes' | 'no' | ''>(initialQ1 === true ? 'yes' : initialQ1 === false ? 'no' : '');
-  const [q1Comment, setQ1Comment] = useState('');
+  const [q1Comment, setQ1Comment] = useState(initialQ1Comment || '');
   const [q2, setQ2] = useState<'yes' | 'no' | ''>(initialQ2 === true ? 'yes' : initialQ2 === false ? 'no' : '');
-  const [q2Comment, setQ2Comment] = useState('');
+  const [q2Comment, setQ2Comment] = useState(initialQ2Comment || '');
   const [q3, setQ3] = useState<'yes' | 'no' | ''>(initialQ3 === true ? 'yes' : initialQ3 === false ? 'no' : '');
-  const [q3Comment, setQ3Comment] = useState('');
+  const [q3Comment, setQ3Comment] = useState(initialQ3Comment || '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
