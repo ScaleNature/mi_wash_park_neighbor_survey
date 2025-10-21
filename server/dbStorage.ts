@@ -65,7 +65,7 @@ export interface IStorage {
   getAllAreas(): Promise<Area[]>;
   getAreaById(id: string): Promise<Area | undefined>;
   createArea(area: InsertArea): Promise<Area>;
-  updateArea(id: string, updates: Partial<Omit<Area, 'id' | 'name'>>): Promise<Area | undefined>;
+  updateArea(id: string, updates: Partial<Omit<Area, 'id'>>): Promise<Area | undefined>;
   addParcelToArea(areaId: string, parcelId: string): Promise<void>;
   removeParcelFromArea(areaId: string, parcelId: string): Promise<void>;
   getParcelsInArea(areaId: string): Promise<string[]>;
@@ -525,7 +525,7 @@ export class DbStorage implements IStorage {
     return newArea;
   }
 
-  async updateArea(id: string, updates: Partial<Omit<Area, 'id' | 'name'>>): Promise<Area | undefined> {
+  async updateArea(id: string, updates: Partial<Omit<Area, 'id'>>): Promise<Area | undefined> {
     const areas = await this.loadAreasFromFile();
     const index = areas.findIndex(area => area.id === id);
     
