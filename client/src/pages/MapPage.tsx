@@ -38,6 +38,12 @@ export default function MapPage() {
     queryKey: ["/api/areas"],
   });
 
+  const { data: adminSession } = useQuery<{ isAdmin: boolean }>({
+    queryKey: ["/api/admin/session"],
+  });
+
+  const isAdmin = adminSession?.isAdmin || false;
+
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>("all");
 
   const { data: parcelsData, isLoading } = useQuery<ParcelData[]>({
@@ -64,6 +70,10 @@ export default function MapPage() {
     address: p.address || undefined,
     status: calculateStatus(p.q1Response, p.q2Response),
     hasCompost: p.q3Response || false,
+    selected: true,
+    q1Response: p.q1Response,
+    q2Response: p.q2Response,
+    q3Response: p.q3Response,
   })) || [];
 
   if (isLoading) {
@@ -113,6 +123,7 @@ export default function MapPage() {
         center={center} 
         zoom={zoom}
         fitBounds={showAllAreas}
+        adminMode={isAdmin}
       />
     </div>
   );
