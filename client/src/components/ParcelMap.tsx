@@ -270,6 +270,17 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
                       <p><strong>Q2 (Assistance Interest):</strong> {parcel.q2Response == null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
                       <p><strong>Q3 (Compost Sharing):</strong> {parcel.q3Response == null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
                     </div>
+                    <Link href={`/survey?parcelId=${encodeURIComponent(parcel.id)}`}>
+                      <Button 
+                        size="sm" 
+                        variant="default" 
+                        className="w-full mt-1"
+                        data-testid={`button-edit-survey-${parcel.id}`}
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        Edit Survey Response
+                      </Button>
+                    </Link>
                   </div>
                 </Popup>
               )}

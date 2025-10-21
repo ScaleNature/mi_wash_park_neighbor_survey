@@ -362,6 +362,9 @@ export default function AdminPage() {
     status: 'none' as 'none' | 'light-green' | 'forest-green',
     hasCompost: false,
     selected: selectedParcelIds.includes(parcel.id),
+    q1Response: parcel.q1Response,
+    q2Response: parcel.q2Response,
+    q3Response: parcel.q3Response,
   }));
 
   // Convert full Parcels to ParcelAdmin for the table
