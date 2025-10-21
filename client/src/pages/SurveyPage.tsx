@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearch } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import CodePhraseEntry from "@/components/CodePhraseEntry";
 import SurveyForm, { SurveyData } from "@/components/SurveyForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,11 +9,26 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function SurveyPage() {
-  const [parcelId, setParcelId] = useState<string | null>(null);
+  const search = useSearch();
+  const searchParams = new URLSearchParams(search);
+  const urlParcelId = searchParams.get('parcelId');
+  
+  const [parcelId, setParcelId] = useState<string | null>(urlParcelId);
   const [parcelData, setParcelData] = useState<any>(null);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  
+  const { data: fetchedParcel, isLoading: isLoadingParcel } = useQuery({
+    queryKey: ['/api/parcels', urlParcelId],
+    enabled: !!urlParcelId,
+  });
+  
+  useEffect(() => {
+    if (fetchedParcel) {
+      setParcelData(fetchedParcel);
+    }
+  }, [fetchedParcel]);
 
   const handleValidCode = (id: string, parcel: any) => {
     setParcelId(id);
@@ -26,8 +43,11 @@ export default function SurveyPage() {
       await apiRequest("POST", `/api/parcels/${parcelId}/survey`, {
         address: data.address,
         q1Response: data.question1 === 'yes',
+        q1Comment: data.question1Comment,
         q2Response: data.question2 === 'yes',
+        q2Comment: data.question2Comment,
         q3Response: data.question3 === 'yes',
+        q3Comment: data.question3Comment,
       });
       
       setSubmitted(true);
@@ -86,8 +106,11 @@ export default function SurveyPage() {
           isSubmitting={isSubmitting}
           initialAddress={parcelData?.address}
           initialQ1={parcelData?.q1Response}
+          initialQ1Comment={parcelData?.q1Comment}
           initialQ2={parcelData?.q2Response}
+          initialQ2Comment={parcelData?.q2Comment}
           initialQ3={parcelData?.q3Response}
+          initialQ3Comment={parcelData?.q3Comment}
         />
       </div>
     </div>
