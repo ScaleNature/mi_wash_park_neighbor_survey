@@ -26,6 +26,7 @@ interface ParcelMapProps {
   zoom?: number;
   onParcelClick?: (parcelId: string) => void;
   adminMode?: boolean;
+  fitBounds?: boolean;
 }
 
 function MapClickHandler() {
@@ -101,7 +102,7 @@ function FitBoundsToParcel({ parcels, swapCoordinates }: { parcels: Parcel[], sw
   return null;
 }
 
-export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, adminMode = false }: ParcelMapProps) {
+export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, adminMode = false, fitBounds = false }: ParcelMapProps) {
   const mapRef = useRef<LeafletMap>(null);
 
   const getParcelColor = (status: string, adminMode: boolean = false, isSelected: boolean = false) => {
@@ -170,7 +171,11 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
         className="z-0"
       >
         <MapClickHandler />
-        <UpdateMapCenter center={center} zoom={zoom} />
+        {fitBounds ? (
+          <FitBoundsToParcel parcels={parcels} swapCoordinates={swapCoordinates} />
+        ) : (
+          <UpdateMapCenter center={center} zoom={zoom} />
+        )}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
