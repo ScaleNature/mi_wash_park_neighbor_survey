@@ -3,8 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { LatLngExpression } from 'leaflet';
 import { useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { RotateCcw } from 'lucide-react';
 
 type ParcelStatus = 'none' | 'light-green' | 'forest-green';
 
@@ -41,27 +39,24 @@ export default function MapPage() {
   });
 
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
-  const [mapKey, setMapKey] = useState<number>(0);
 
   const { data: parcelsData, isLoading } = useQuery<ParcelData[]>({
     queryKey: ["/api/survey/parcels"],
   });
 
-  // Use selected area if available, otherwise use first area
-  const currentArea = selectedAreaId 
-    ? areas?.find(a => a.id === selectedAreaId)
-    : areas?.[0];
+  // "all" means show all areas, otherwise use selected area or first area
+  const showAllAreas = selectedAreaId === "all";
+  const currentArea = showAllAreas 
+    ? null
+    : (selectedAreaId 
+        ? areas?.find(a => a.id === selectedAreaId)
+        : areas?.[0]);
 
   const center: [number, number] = [
     currentArea?.centerLat ?? 42.2808,
     currentArea?.centerLng ?? -83.7430
   ];
   const zoom = currentArea?.defaultZoom ?? 16;
-
-  const handleResetView = () => {
-    // Force map re-render with current center/zoom
-    setMapKey(prev => prev + 1);
-  };
 
   const parcels: Parcel[] = parcelsData?.map(p => ({
     id: p.id,
@@ -82,7 +77,7 @@ export default function MapPage() {
   return (
     <div className="relative h-[calc(100vh-4rem)]">
       {areas && areas.length > 0 && (
-        <div className="absolute top-4 left-4 z-[1000] flex gap-2">
+        <div className="absolute top-4 right-4 z-[1000]">
           <Select 
             value={selectedAreaId || areas[0]?.id} 
             onValueChange={setSelectedAreaId}
@@ -94,6 +89,12 @@ export default function MapPage() {
               <SelectValue placeholder="Select an area" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem 
+                value="all"
+                data-testid="select-area-all"
+              >
+                Show All Areas
+              </SelectItem>
               {areas.map(area => (
                 <SelectItem 
                   key={area.id} 
@@ -105,25 +106,14 @@ export default function MapPage() {
               ))}
             </SelectContent>
           </Select>
-          <ResetViewButton center={center} zoom={zoom} onReset={handleResetView} />
         </div>
       )}
-      <ParcelMap key={mapKey} parcels={parcels} center={center} zoom={zoom} />
+      <ParcelMap 
+        parcels={parcels} 
+        center={center} 
+        zoom={zoom}
+        fitBounds={showAllAreas}
+      />
     </div>
-  );
-}
-
-function ResetViewButton({ center, zoom, onReset }: { center: [number, number]; zoom: number; onReset: () => void }) {
-  return (
-    <Button
-      onClick={onReset}
-      variant="secondary"
-      size="sm"
-      className="shadow-md"
-      data-testid="button-reset-view"
-    >
-      <RotateCcw className="h-4 w-4 mr-2" />
-      Reset View
-    </Button>
   );
 }
