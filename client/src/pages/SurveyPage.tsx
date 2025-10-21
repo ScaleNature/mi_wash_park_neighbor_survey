@@ -80,7 +80,7 @@ export default function SurveyPage() {
             </div>
             <CardTitle>Thank You!</CardTitle>
             <CardDescription>
-              Your response has been recorded. We appreciate your participation in supporting the health of Molin Nature Area.
+              Your response has been recorded. We appreciate your participation.
             </CardDescription>
           </CardHeader>
         </Card>
