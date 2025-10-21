@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -48,6 +48,35 @@ export default function SurveyForm({
   const [q2Comment, setQ2Comment] = useState(initialQ2Comment || '');
   const [q3, setQ3] = useState<'yes' | 'no' | ''>(initialQ3 === true ? 'yes' : initialQ3 === false ? 'no' : '');
   const [q3Comment, setQ3Comment] = useState(initialQ3Comment || '');
+
+  // Update form state when initial props change (for pre-filling existing responses)
+  useEffect(() => {
+    setAddress(initialAddress || '');
+  }, [initialAddress]);
+
+  useEffect(() => {
+    setQ1(initialQ1 === true ? 'yes' : initialQ1 === false ? 'no' : '');
+  }, [initialQ1]);
+
+  useEffect(() => {
+    setQ1Comment(initialQ1Comment || '');
+  }, [initialQ1Comment]);
+
+  useEffect(() => {
+    setQ2(initialQ2 === true ? 'yes' : initialQ2 === false ? 'no' : '');
+  }, [initialQ2]);
+
+  useEffect(() => {
+    setQ2Comment(initialQ2Comment || '');
+  }, [initialQ2Comment]);
+
+  useEffect(() => {
+    setQ3(initialQ3 === true ? 'yes' : initialQ3 === false ? 'no' : '');
+  }, [initialQ3]);
+
+  useEffect(() => {
+    setQ3Comment(initialQ3Comment || '');
+  }, [initialQ3Comment]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
