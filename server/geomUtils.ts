@@ -78,3 +78,33 @@ export function calculateDistance(lat1: number, lng1: number, lat2: number, lng2
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
+
+/**
+ * Calculate a bounding box (square) around a center point given a radius in meters
+ * @param centerLat - Latitude of center point
+ * @param centerLng - Longitude of center point
+ * @param radiusMeters - Radius in meters
+ * @returns Object with minLat, maxLat, minLng, maxLng
+ */
+export function calculateBoundingBox(
+  centerLat: number,
+  centerLng: number,
+  radiusMeters: number
+): { minLat: number; maxLat: number; minLng: number; maxLng: number } {
+  // Earth's radius: 1 degree latitude ≈ 111,320 meters (constant everywhere)
+  const metersPerDegreeLat = 111320;
+  
+  // Longitude varies by latitude: 1 degree longitude ≈ 111,320 × cos(latitude) meters
+  const metersPerDegreeLng = metersPerDegreeLat * Math.cos(centerLat * Math.PI / 180);
+  
+  // Convert radius from meters to degrees
+  const latOffset = radiusMeters / metersPerDegreeLat;
+  const lngOffset = radiusMeters / metersPerDegreeLng;
+  
+  return {
+    minLat: centerLat - latOffset,
+    maxLat: centerLat + latOffset,
+    minLng: centerLng - lngOffset,
+    maxLng: centerLng + lngOffset,
+  };
+}
