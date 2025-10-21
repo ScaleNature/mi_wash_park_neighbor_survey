@@ -248,7 +248,7 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
           );
         }
         )}
-        {parcels.filter(p => adminMode ? p.selected : p.status === 'forest-green').map((parcel) => {
+        {adminMode && parcels.filter(p => p.selected).map((parcel) => {
           const leafletCoords = swapCoordinates(parcel.coordinates);
           return (
             <Marker
@@ -256,34 +256,32 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
               position={getParcelCenter(leafletCoords)}
               icon={leafIcon}
             >
-              {adminMode && (
-                <Popup>
-                  <div className="p-2 space-y-2" data-testid={`popup-admin-leaf-${parcel.id}`}>
-                    <div>
-                      {parcel.address && <p className="font-semibold">{parcel.address}</p>}
-                      <p className="text-xs font-mono text-muted-foreground">
-                        ID: {parcel.id}
-                      </p>
-                    </div>
-                    <div className="text-sm space-y-1">
-                      <p><strong>Q1 (Removal Permission):</strong> {parcel.q1Response == null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
-                      <p><strong>Q2 (Assistance Interest):</strong> {parcel.q2Response == null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
-                      <p><strong>Q3 (Compost Sharing):</strong> {parcel.q3Response == null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
-                    </div>
-                    <Link href={`/survey?parcelId=${encodeURIComponent(parcel.id)}`}>
-                      <Button 
-                        size="sm" 
-                        variant="default" 
-                        className="w-full mt-1"
-                        data-testid={`button-edit-survey-${parcel.id}`}
-                      >
-                        <ExternalLink className="h-3 w-3 mr-1" />
-                        Edit Survey Response
-                      </Button>
-                    </Link>
+              <Popup>
+                <div className="p-2 space-y-2" data-testid={`popup-admin-leaf-${parcel.id}`}>
+                  <div>
+                    {parcel.address && <p className="font-semibold">{parcel.address}</p>}
+                    <p className="text-xs font-mono text-muted-foreground">
+                      ID: {parcel.id}
+                    </p>
                   </div>
-                </Popup>
-              )}
+                  <div className="text-sm space-y-1">
+                    <p><strong>Q1 (Removal Permission):</strong> {parcel.q1Response == null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
+                    <p><strong>Q2 (Assistance Interest):</strong> {parcel.q2Response == null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
+                    <p><strong>Q3 (Compost Sharing):</strong> {parcel.q3Response == null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
+                  </div>
+                  <Link href={`/survey?parcelId=${encodeURIComponent(parcel.id)}`}>
+                    <Button 
+                      size="sm" 
+                      variant="default" 
+                      className="w-full mt-1"
+                      data-testid={`button-edit-survey-${parcel.id}`}
+                    >
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      Edit Survey Response
+                    </Button>
+                  </Link>
+                </div>
+              </Popup>
             </Marker>
           );
         })}
@@ -314,10 +312,6 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: '#2d7a4f' }} />
               <span>Full Support</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Leaf className="h-4 w-4 text-green-600" />
-              <span>Selected in Area</span>
             </div>
             <div className="flex items-center gap-2">
               <Trash2 className="h-4 w-4 text-primary" />
