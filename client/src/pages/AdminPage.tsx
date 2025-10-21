@@ -97,12 +97,6 @@ export default function AdminPage() {
     }
   }, [settings]);
 
-  // Auto-select first area when areas load
-  useEffect(() => {
-    if (areas.length > 0 && !selectedAreaId) {
-      setSelectedAreaId(areas[0].id);
-    }
-  }, [areas, selectedAreaId]);
 
   // Load area settings when selected area changes
   useEffect(() => {
