@@ -512,7 +512,7 @@ export default function AdminPage() {
                   data-testid="select-area"
                 >
                   <option value="">-- No area selected --</option>
-                  {areas.map(area => (
+                  {[...areas].sort((a, b) => a.name.localeCompare(b.name)).map(area => (
                     <option key={area.id} value={area.id}>{area.name}</option>
                   ))}
                 </select>

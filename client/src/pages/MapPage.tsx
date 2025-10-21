@@ -95,7 +95,7 @@ export default function MapPage() {
               >
                 Show All Areas
               </SelectItem>
-              {areas.map(area => (
+              {[...areas].sort((a, b) => a.name.localeCompare(b.name)).map(area => (
                 <SelectItem 
                   key={area.id} 
                   value={area.id}
