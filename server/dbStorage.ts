@@ -241,7 +241,9 @@ export class DbStorage implements IStorage {
     let debugSamples = 0;
     const filtered = (result.rows as Pick<Parcel, 'id' | 'address' | 'geometry'>[]).filter(parcel => {
       // Parse coordinates from ID format: "{lat},{lng}-{count}"
-      const coordPart = parcel.id.split('-')[0];
+      // Use lastIndexOf to split from the right (handles negative longitude correctly)
+      const lastDashIndex = parcel.id.lastIndexOf('-');
+      const coordPart = parcel.id.substring(0, lastDashIndex);
       const [latStr, lngStr] = coordPart.split(',');
       const lat = parseFloat(latStr);
       const lng = parseFloat(lngStr);
