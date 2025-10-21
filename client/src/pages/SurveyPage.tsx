@@ -42,12 +42,12 @@ export default function SurveyPage() {
     try {
       await apiRequest("POST", `/api/parcels/${parcelId}/survey`, {
         address: data.address,
-        q1Response: data.question1 === 'yes',
-        q1Comment: data.question1Comment,
-        q2Response: data.question2 === 'yes',
-        q2Comment: data.question2Comment,
-        q3Response: data.question3 === 'yes',
-        q3Comment: data.question3Comment,
+        q1Response: data.question1 ? data.question1 === 'yes' : null,
+        q1Comment: data.question1Comment || null,
+        q2Response: data.question2 ? data.question2 === 'yes' : null,
+        q2Comment: data.question2Comment || null,
+        q3Response: data.question3 ? data.question3 === 'yes' : null,
+        q3Comment: data.question3Comment || null,
       });
       
       // Invalidate caches so the map updates immediately

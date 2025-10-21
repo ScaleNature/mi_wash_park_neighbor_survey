@@ -10,12 +10,12 @@ import { Input } from "@/components/ui/input";
 
 export interface SurveyData {
   address?: string;
-  question1: 'yes' | 'no';
-  question1Comment: string;
-  question2: 'yes' | 'no';
-  question2Comment: string;
-  question3: 'yes' | 'no';
-  question3Comment: string;
+  question1?: 'yes' | 'no';
+  question1Comment?: string;
+  question2?: 'yes' | 'no';
+  question2Comment?: string;
+  question3?: 'yes' | 'no';
+  question3Comment?: string;
 }
 
 interface SurveyFormProps {
@@ -51,20 +51,18 @@ export default function SurveyForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (q1 && q2 && q3) {
-      onSubmit({
-        address: address || undefined,
-        question1: q1,
-        question1Comment: q1Comment,
-        question2: q2,
-        question2Comment: q2Comment,
-        question3: q3,
-        question3Comment: q3Comment,
-      });
-    }
+    onSubmit({
+      address: address || undefined,
+      question1: q1 || undefined,
+      question1Comment: q1Comment || undefined,
+      question2: q2 || undefined,
+      question2Comment: q2Comment || undefined,
+      question3: q3 || undefined,
+      question3Comment: q3Comment || undefined,
+    });
   };
 
-  const isValid = q1 && q2 && q3;
+  const isValid = true; // Always valid since all questions are optional
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -98,7 +96,7 @@ export default function SurveyForm({
               1
             </div>
             <div className="flex-1">
-              <CardTitle className="text-lg">Invasive Species Removal Support</CardTitle>
+              <CardTitle className="text-lg">Invasive Species Removal Support (Optional)</CardTitle>
               <CardDescription className="mt-2">
                 I welcome Park Stewards to remove invasive species in Molin Nature Area near my property.
               </CardDescription>
@@ -137,7 +135,7 @@ export default function SurveyForm({
               2
             </div>
             <div className="flex-1">
-              <CardTitle className="text-lg">Community Partnership</CardTitle>
+              <CardTitle className="text-lg">Community Partnership (Optional)</CardTitle>
               <CardDescription className="mt-2">
                 As community partners, I understand that Park Stewards are available to assist me in the removal of the same species on my property, through either consultation, removal assistance, or donation based work.
               </CardDescription>
@@ -176,7 +174,7 @@ export default function SurveyForm({
               3
             </div>
             <div className="flex-1">
-              <CardTitle className="text-lg">Compost Bin Sharing</CardTitle>
+              <CardTitle className="text-lg">Compost Bin Sharing (Optional)</CardTitle>
               <CardDescription className="mt-2">
                 During the spring season, Park Stewards pull and compost bags of invasive species like Garlic Mustard and Dame's Rocket. I welcome Park Stewards to use my compost bin, as appropriate to more easily dispose of such material.
               </CardDescription>
