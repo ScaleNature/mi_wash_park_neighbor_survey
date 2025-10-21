@@ -120,6 +120,17 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
     }
   };
 
+  const getParcelBorderColor = (status: string, adminMode: boolean = false, isSelected: boolean = false) => {
+    if (adminMode) {
+      return '#94a3b8';
+    }
+    // Both Q1 support and full support get dark green borders
+    if (status === 'light-green' || status === 'forest-green') {
+      return '#2d7a4f';
+    }
+    return '#94a3b8';
+  };
+
   // Convert GeoJSON coordinates [lng, lat] to Leaflet format [lat, lng]
   const swapCoordinates = (coords: LatLngExpression[][]): LatLngExpression[][] => {
     return coords.map(ring => 
@@ -197,7 +208,7 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
               key={parcel.id}
               positions={leafletCoords}
               pathOptions={{
-                color: getParcelColor(parcel.status, adminMode, isSelected),
+                color: getParcelBorderColor(parcel.status, adminMode, isSelected),
                 fillColor: getParcelColor(parcel.status, adminMode, isSelected),
                 fillOpacity: adminMode ? 0.35 : 0.5,
                 opacity: borderOpacity,
