@@ -216,6 +216,10 @@ export class DbStorage implements IStorage {
       latPrefixes.push(latPrefix);
     }
     
+    console.log(`[getParcelsInBoundingBox] Lat range: ${minLat.toFixed(6)} to ${maxLat.toFixed(6)}`);
+    console.log(`[getParcelsInBoundingBox] Lng range: ${minLng.toFixed(6)} to ${maxLng.toFixed(6)}`);
+    console.log(`[getParcelsInBoundingBox] Generated ${latPrefixes.length} lat prefixes: ${latPrefixes.join(', ')}`);
+    
     // Build OR conditions for latitude prefix matching
     const conditions = latPrefixes.map(prefix => sql`id LIKE ${prefix + '%'}`);
     const whereClause = conditions.length > 0 
@@ -231,7 +235,10 @@ export class DbStorage implements IStorage {
       `
     );
     
+    console.log(`[getParcelsInBoundingBox] Database returned ${result.rows.length} parcels with matching lat prefixes`);
+    
     // Filter parcels precisely by parsing their coordinates from ID and checking bounding box
+    let debugSamples = 0;
     const filtered = (result.rows as Pick<Parcel, 'id' | 'address' | 'geometry'>[]).filter(parcel => {
       // Parse coordinates from ID format: "{lat},{lng}-{count}"
       const coordPart = parcel.id.split('-')[0];
@@ -239,9 +246,19 @@ export class DbStorage implements IStorage {
       const lat = parseFloat(latStr);
       const lng = parseFloat(lngStr);
       
+      if (debugSamples < 5) {
+        console.log(`[getParcelsInBoundingBox] Sample parcel ${parcel.id}: lat=${lat}, lng=${lng}, latOK=${lat >= minLat && lat <= maxLat}, lngOK=${lng >= minLng && lng <= maxLng}`);
+        debugSamples++;
+      }
+      
       // Check if coordinates fall within bounding box
       return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
     });
+    
+    console.log(`[getParcelsInBoundingBox] After precise filtering: ${filtered.length} parcels within bounding box`);
+    if (filtered.length > 0) {
+      console.log(`[getParcelsInBoundingBox] Sample filtered parcel IDs: ${filtered.slice(0, 3).map(p => p.id).join(', ')}`);
+    }
     
     return filtered;
   }
