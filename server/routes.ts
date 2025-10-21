@@ -305,6 +305,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Validate request body
       const updateSchema = z.object({
+        name: z.string().min(1),
         centerLat: z.number().min(-90).max(90),
         centerLng: z.number().min(-180).max(180),
         defaultZoom: z.number().min(1).max(20),
