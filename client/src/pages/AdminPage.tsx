@@ -361,26 +361,29 @@ export default function AdminPage() {
 
     // Get the first ring of the polygon
     const ring = coordinates[0];
-    let sumLat = 0;
-    let sumLng = 0;
     
+    // Calculate bounding box from parcel coordinates
     // GeoJSON format is [longitude, latitude]
-    for (const point of ring) {
-      sumLng += point[0]; // longitude
-      sumLat += point[1]; // latitude
-    }
+    let minLat = Infinity, maxLat = -Infinity;
+    let minLng = Infinity, maxLng = -Infinity;
     
-    const centerLat = sumLat / ring.length;
-    const centerLng = sumLng / ring.length;
+    for (const point of ring) {
+      const lng = point[0];
+      const lat = point[1];
+      minLat = Math.min(minLat, lat);
+      maxLat = Math.max(maxLat, lat);
+      minLng = Math.min(minLng, lng);
+      maxLng = Math.max(maxLng, lng);
+    }
 
     // Scroll to map first
     if (mapContainerRef.current) {
       mapContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // Then fly to parcel after a brief delay to ensure scroll completes
+    // Then fit bounds to parcel after a brief delay to ensure scroll completes
     setTimeout(() => {
-      mapRef.current?.flyTo([centerLat, centerLng], 18);
+      mapRef.current?.fitBounds([[minLat, minLng], [maxLat, maxLng]], 80);
     }, 500);
 
     toast({
