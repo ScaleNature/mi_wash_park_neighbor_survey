@@ -41,6 +41,7 @@ export type AppSettings = typeof appSettings.$inferSelect;
 
 export const parcels = pgTable("parcels", {
   id: varchar("id").primaryKey(),
+  shortCode: varchar("short_code").unique(),
   address: text("address"),
   codePhrase: text("code_phrase").notNull(),
   geometry: jsonb("geometry").notNull(),
