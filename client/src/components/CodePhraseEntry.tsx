@@ -31,7 +31,7 @@ export default function CodePhraseEntry({ onValidCode }: CodePhraseEntryProps) {
       if (response.success && response.parcel) {
         onValidCode(response.parcel.id, response.parcel);
       } else {
-        setError("Invalid parcel ID or nature phrase. Please check and try again.");
+        setError("Invalid parcel code or nature phrase. Please check and try again.");
       }
     } catch (err: any) {
       setError(err.message || "Verification failed. Please try again.");
@@ -48,19 +48,19 @@ export default function CodePhraseEntry({ onValidCode }: CodePhraseEntryProps) {
         </div>
         <CardTitle>Sign In</CardTitle>
         <CardDescription>
-          Enter your parcel ID and nature phrase to participate.
+          Enter your parcel code and nature phrase to participate.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="parcel-id">Parcel ID</Label>
+            <Label htmlFor="parcel-id">Parcel Code</Label>
             <Input
               id="parcel-id"
               type="text"
               value={parcelId}
               onChange={(e) => setParcelId(e.target.value)}
-              placeholder="e.g., P42.284198_-83.740703"
+              placeholder="e.g., 1234"
               className="mt-2"
               data-testid="input-parcel-id"
             />
