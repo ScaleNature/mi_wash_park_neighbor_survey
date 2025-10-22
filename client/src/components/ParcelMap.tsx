@@ -68,7 +68,7 @@ function UpdateMapCenter({ center, zoom }: { center?: LatLngExpression, zoom: nu
       
       // Only update map if values actually changed
       if (valuesChanged) {
-        map.setView(center, zoom);
+        map.flyTo(center, zoom, { duration: 0.5 });
         // Update refs to track current values
         prevCenterRef.current = centerStr;
         prevZoomRef.current = zoom;

@@ -114,6 +114,9 @@ export default function AdminPage() {
       setAreaCenterLocation(`${selectedArea.centerLat},${selectedArea.centerLng}`);
       setAreaZoom(selectedArea.defaultZoom.toString());
       setAreaDisplayRadius(selectedArea.displayRadiusMeters.toString());
+      // Reset map focus when area changes
+      setMapCenter(null);
+      setMapZoom(null);
     }
   }, [selectedAreaId, areas]);
 
