@@ -232,7 +232,7 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
                       ID: {parcel.id}
                     </p>
                   </div>
-                  <div className="text-sm text-muted-foreground space-y-1">
+                  <div className="text-sm text-muted-foreground">
                     {parcel.q1Response == null && parcel.q2Response == null && parcel.q3Response == null && (
                       <p>No Response</p>
                     )}
