@@ -232,15 +232,20 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
                       ID: {parcel.id}
                     </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Status: {parcel.status === 'none' ? 'No response' : parcel.status === 'light-green' ? 'Q1 Support' : 'Full Support'}
-                  </p>
-                  {parcel.hasCompost && (
-                    <div className="flex items-center gap-1 text-sm text-primary">
-                      <Trash2 className="h-4 w-4" />
-                      <span>Compost bin available</span>
-                    </div>
-                  )}
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    {!parcel.q1Response && !parcel.q2Response && !parcel.q3Response && (
+                      <p>No Response</p>
+                    )}
+                    {parcel.q1Response && (
+                      <p>Supports Park Border Care</p>
+                    )}
+                    {parcel.q2Response && (
+                      <p>Appreciates Parcel Help</p>
+                    )}
+                    {parcel.q3Response && (
+                      <p>Compost Bin Usage Allowed</p>
+                    )}
+                  </div>
                   <Link href="/survey">
                     <Button 
                       size="sm" 
