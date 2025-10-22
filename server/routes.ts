@@ -526,29 +526,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Parcel login verification
+  // Parcel login verification - uses shortCode instead of full parcelId
   app.post("/api/parcels/verify", async (req, res) => {
     try {
-      const { parcelId, codePhrase } = req.body;
+      const { parcelId: shortCode, codePhrase } = req.body;
       
-      if (!parcelId || !codePhrase) {
-        return res.status(400).json({ message: "Parcel ID and code phrase are required" });
+      if (!shortCode || !codePhrase) {
+        return res.status(400).json({ message: "Parcel code and nature phrase are required" });
       }
       
-      const isValid = await storage.verifyParcelCredentials(parcelId, codePhrase);
+      // Verify using shortCode and get the actual parcelId
+      const verification = await storage.verifyParcelCredentialsByShortCode(shortCode, codePhrase);
       
-      if (!isValid) {
-        return res.status(401).json({ message: "Invalid parcel ID or code phrase" });
+      if (!verification.isValid || !verification.parcelId) {
+        return res.status(401).json({ message: "Invalid parcel code or nature phrase" });
       }
 
       // Check if parcel is in any area
-      const isInArea = await storage.isParcelInAnyArea(parcelId);
+      const isInArea = await storage.isParcelInAnyArea(verification.parcelId);
       
       if (!isInArea) {
         return res.status(403).json({ message: "This parcel is not currently included in any survey area. Please contact the area coordinator if you believe this is an error." });
       }
 
-      const parcel = await storage.getParcelById(parcelId);
+      const parcel = await storage.getParcelById(verification.parcelId);
       res.json({ success: true, parcel });
     } catch (error) {
       console.error("Parcel verification error:", error);

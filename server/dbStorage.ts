@@ -57,9 +57,11 @@ export interface IStorage {
   getParcelsInBoundingBox(minLat: number, maxLat: number, minLng: number, maxLng: number): Promise<Pick<Parcel, 'id' | 'address' | 'geometry'>[]>;
   getParcelsByIds(ids: string[]): Promise<Parcel[]>;
   getParcelById(id: string): Promise<Parcel | undefined>;
+  getParcelByShortCode(shortCode: string): Promise<Parcel | undefined>;
   updateParcel(id: string, updates: UpdateParcel): Promise<Parcel | undefined>;
   regenerateNaturePhrase(id: string): Promise<string | undefined>;
   verifyParcelCredentials(parcelId: string, codePhrase: string): Promise<boolean>;
+  verifyParcelCredentialsByShortCode(shortCode: string, codePhrase: string): Promise<{ isValid: boolean; parcelId?: string }>;
   loadParcelsFromGeoJSON(features: any[]): Promise<number>;
   
   getAllAreas(): Promise<Area[]>;
@@ -275,6 +277,11 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
+  async getParcelByShortCode(shortCode: string): Promise<Parcel | undefined> {
+    const result = await this.db.select().from(parcels).where(eq(parcels.shortCode, shortCode)).limit(1);
+    return result[0];
+  }
+
   async updateParcel(id: string, updates: UpdateParcel): Promise<Parcel | undefined> {
     const result = await this.db
       .update(parcels)
@@ -298,6 +305,13 @@ export class DbStorage implements IStorage {
     const parcel = await this.getParcelById(parcelId);
     if (!parcel) return false;
     return parcel.codePhrase === codePhrase;
+  }
+
+  async verifyParcelCredentialsByShortCode(shortCode: string, codePhrase: string): Promise<{ isValid: boolean; parcelId?: string }> {
+    const parcel = await this.getParcelByShortCode(shortCode);
+    if (!parcel) return { isValid: false };
+    if (parcel.codePhrase !== codePhrase) return { isValid: false };
+    return { isValid: true, parcelId: parcel.id };
   }
 
   async loadParcelsFromGeoJSON(features: any[]): Promise<number> {
