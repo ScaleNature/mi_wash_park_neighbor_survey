@@ -467,6 +467,23 @@ export default function AdminPage() {
                 />
               </div>
             </div>
+            {areas.length > 0 && (
+              <div>
+                <Label htmlFor="area-select">Current Selected Area</Label>
+                <select
+                  id="area-select"
+                  value={selectedAreaId}
+                  onChange={(e) => setSelectedAreaId(e.target.value)}
+                  className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2"
+                  data-testid="select-area"
+                >
+                  <option value="">-- No area selected --</option>
+                  {[...areas].sort((a, b) => a.name.localeCompare(b.name)).map(area => (
+                    <option key={area.id} value={area.id}>{area.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <Label htmlFor="admin-password">Admin Password (leave empty to keep current)</Label>
               <Input
@@ -500,24 +517,6 @@ export default function AdminPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {areas.length > 0 && (
-              <div>
-                <Label htmlFor="area-select">Current Selected Area</Label>
-                <select
-                  id="area-select"
-                  value={selectedAreaId}
-                  onChange={(e) => setSelectedAreaId(e.target.value)}
-                  className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2"
-                  data-testid="select-area"
-                >
-                  <option value="">-- No area selected --</option>
-                  {[...areas].sort((a, b) => a.name.localeCompare(b.name)).map(area => (
-                    <option key={area.id} value={area.id}>{area.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
             {isDevelopment && selectedAreaId && (
               <div className="space-y-4 pt-4 border-t">
                 <h3 className="font-medium">Edit Selected Area</h3>
