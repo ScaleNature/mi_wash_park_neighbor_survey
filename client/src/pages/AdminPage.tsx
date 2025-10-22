@@ -386,6 +386,7 @@ export default function AdminPage() {
     
     return {
       id: parcel.id,
+      shortCode: parcel.shortCode,
       address: parcel.address,
       codePhrase: parcel.codePhrase,
       status,
@@ -400,7 +401,8 @@ export default function AdminPage() {
     (parcel) =>
       (parcel.address || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       parcel.codePhrase.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      parcel.id.toLowerCase().includes(searchTerm.toLowerCase())
+      parcel.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (parcel.shortCode || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (sessionLoading) {

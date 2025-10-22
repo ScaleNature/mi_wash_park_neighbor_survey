@@ -12,6 +12,7 @@ import { useMutation } from "@tanstack/react-query";
 
 export interface ParcelAdmin {
   id: string;
+  shortCode?: string | null;
   address: string | null;
   codePhrase: string;
   status: 'none' | 'light-green' | 'forest-green';
@@ -112,9 +113,9 @@ export default function AdminTable({ parcels }: AdminTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Parcel ID</TableHead>
+              <TableHead>Code</TableHead>
               <TableHead>Address</TableHead>
-              <TableHead>Code Phrase</TableHead>
+              <TableHead>Nature Phrase</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Q1</TableHead>
               <TableHead>Q2</TableHead>
@@ -126,7 +127,7 @@ export default function AdminTable({ parcels }: AdminTableProps) {
           <TableBody>
             {parcels.map((parcel) => (
               <TableRow key={parcel.id} data-testid={`row-parcel-${parcel.id}`}>
-                <TableCell className="font-mono text-sm">{parcel.id}</TableCell>
+                <TableCell className="font-bold text-lg">{parcel.shortCode || '-'}</TableCell>
                 <TableCell>{parcel.address || <span className="text-muted-foreground">-</span>}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
