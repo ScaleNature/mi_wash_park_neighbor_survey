@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Save, LogOut, Leaf, MapPin, RefreshCw } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Search, Save, LogOut, Leaf, MapPin, RefreshCw, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -29,6 +30,9 @@ export default function AdminPage() {
   const [newAreaCenterLocation, setNewAreaCenterLocation] = useState('');
   const [newAreaZoom, setNewAreaZoom] = useState('16');
   const [newAreaDisplayRadius, setNewAreaDisplayRadius] = useState('500');
+  
+  // Delete confirmation dialog state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   const { toast } = useToast();
 
@@ -270,6 +274,34 @@ export default function AdminPage() {
     createAreaMutation.mutate(areaData);
   };
 
+  // Delete area mutation
+  const deleteAreaMutation = useMutation({
+    mutationFn: async (areaId: string) => {
+      await apiRequest("DELETE", `/api/admin/areas/${areaId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/areas"] });
+      setSelectedAreaId('');
+      setShowDeleteDialog(false);
+      toast({
+        title: "Area deleted",
+        description: "The area has been deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to delete area",
+        description: error.message || "Failed to delete area",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteArea = () => {
+    if (selectedAreaId) {
+      deleteAreaMutation.mutate(selectedAreaId);
+    }
+  };
 
   // Toggle parcel in/out of area mutation
   const toggleParcelMutation = useMutation({
@@ -503,18 +535,31 @@ export default function AdminPage() {
             {areas.length > 0 && (
               <div>
                 <Label htmlFor="area-select">Current Selected Area</Label>
-                <select
-                  id="area-select"
-                  value={selectedAreaId}
-                  onChange={(e) => setSelectedAreaId(e.target.value)}
-                  className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2"
-                  data-testid="select-area"
-                >
-                  <option value="">-- No area selected --</option>
-                  {[...areas].sort((a, b) => a.name.localeCompare(b.name)).map(area => (
-                    <option key={area.id} value={area.id}>{area.name}</option>
-                  ))}
-                </select>
+                <div className="flex gap-2 mt-2">
+                  <select
+                    id="area-select"
+                    value={selectedAreaId}
+                    onChange={(e) => setSelectedAreaId(e.target.value)}
+                    className="flex-1 rounded-md border border-input bg-background px-3 py-2"
+                    data-testid="select-area"
+                  >
+                    <option value="">-- No area selected --</option>
+                    {[...areas].sort((a, b) => a.name.localeCompare(b.name)).map(area => (
+                      <option key={area.id} value={area.id}>{area.name}</option>
+                    ))}
+                  </select>
+                  {selectedAreaId && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setShowDeleteDialog(true)}
+                      disabled={deleteAreaMutation.isPending}
+                      data-testid="button-delete-area"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -769,6 +814,26 @@ export default function AdminPage() {
           </Card>
         )}
       </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Area?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{selectedArea?.name}"? This will remove the area but will NOT delete any survey responses. Survey data on parcels remains intact.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteArea}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Area
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
