@@ -364,9 +364,10 @@ export default function AdminPage() {
     let sumLat = 0;
     let sumLng = 0;
     
+    // GeoJSON format is [longitude, latitude]
     for (const point of ring) {
-      sumLat += point[0]; // latitude
-      sumLng += point[1]; // longitude
+      sumLng += point[0]; // longitude
+      sumLat += point[1]; // latitude
     }
     
     const centerLat = sumLat / ring.length;
