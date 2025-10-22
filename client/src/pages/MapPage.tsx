@@ -72,6 +72,9 @@ export default function MapPage() {
     address: p.address || undefined,
     status: calculateStatus(p.q1Response, p.q2Response),
     hasCompost: p.q3Response || false,
+    q1Response: p.q1Response,
+    q2Response: p.q2Response,
+    q3Response: p.q3Response,
   })) || [];
 
   const handleParcelClick = (parcelId: string) => {
