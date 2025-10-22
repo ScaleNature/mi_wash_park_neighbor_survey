@@ -34,8 +34,7 @@ export default function AdminPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   // Map focus state for locate parcel feature
-  const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
-  const [mapZoom, setMapZoom] = useState<number | null>(null);
+  const [flyToLocation, setFlyToLocation] = useState<{ center: [number, number]; zoom: number; key: number } | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
@@ -115,8 +114,7 @@ export default function AdminPage() {
       setAreaZoom(selectedArea.defaultZoom.toString());
       setAreaDisplayRadius(selectedArea.displayRadiusMeters.toString());
       // Reset map focus when area changes
-      setMapCenter(null);
-      setMapZoom(null);
+      setFlyToLocation(null);
     }
   }, [selectedAreaId, areas]);
 
@@ -376,9 +374,12 @@ export default function AdminPage() {
     const centerLat = sumLat / ring.length;
     const centerLng = sumLng / ring.length;
 
-    // Set map to focus on this parcel with high zoom
-    setMapCenter([centerLat, centerLng]);
-    setMapZoom(18);
+    // Trigger map fly-to with a new key to ensure it fires
+    setFlyToLocation({
+      center: [centerLat, centerLng],
+      zoom: 18,
+      key: Date.now()
+    });
 
     // Scroll to map
     if (mapContainerRef.current) {
@@ -818,9 +819,10 @@ export default function AdminPage() {
               )}
               <ParcelMap 
                 parcels={selectedAreaId ? mapParcels : []}
-                center={mapCenter || (selectedArea ? [selectedArea.centerLat, selectedArea.centerLng] : undefined)}
-                zoom={mapZoom || selectedArea?.defaultZoom || 15}
+                center={selectedArea ? [selectedArea.centerLat, selectedArea.centerLng] : undefined}
+                zoom={selectedArea?.defaultZoom || 15}
                 onParcelClick={handleParcelClick}
+                flyToLocation={flyToLocation}
                 adminMode={true}
               />
             </div>
