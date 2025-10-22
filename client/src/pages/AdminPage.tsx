@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Search, Save, LogOut, Leaf, MapPin, RefreshCw, Trash2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +32,11 @@ export default function AdminPage() {
   
   // Delete confirmation dialog state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  
+  // Map focus state for locate parcel feature
+  const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
+  const [mapZoom, setMapZoom] = useState<number | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
 
@@ -330,6 +335,57 @@ export default function AdminPage() {
 
   const handleParcelClick = (parcelId: string) => {
     toggleParcelMutation.mutate(parcelId);
+  };
+
+  const handleLocateParcel = (parcelId: string) => {
+    // Find the parcel in the data
+    const parcel = allMapParcels.find(p => p.id === parcelId);
+    if (!parcel || !parcel.geometry) {
+      toast({
+        variant: "destructive",
+        title: "Parcel not found",
+        description: "Unable to locate parcel on map",
+      });
+      return;
+    }
+
+    // Calculate centroid from parcel geometry
+    const coordinates = (parcel.geometry as any)?.coordinates || [];
+    if (coordinates.length === 0 || coordinates[0].length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Invalid coordinates",
+        description: "Parcel has no valid coordinates",
+      });
+      return;
+    }
+
+    // Get the first ring of the polygon
+    const ring = coordinates[0];
+    let sumLat = 0;
+    let sumLng = 0;
+    
+    for (const point of ring) {
+      sumLat += point[0]; // latitude
+      sumLng += point[1]; // longitude
+    }
+    
+    const centerLat = sumLat / ring.length;
+    const centerLng = sumLng / ring.length;
+
+    // Set map to focus on this parcel with high zoom
+    setMapCenter([centerLat, centerLng]);
+    setMapZoom(18);
+
+    // Scroll to map
+    if (mapContainerRef.current) {
+      mapContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    toast({
+      title: "Parcel located",
+      description: `Centered map on parcel ${parcel.address || parcelId}`,
+    });
   };
 
   // Refresh map data - completely re-request assigned and optional parcels
@@ -749,7 +805,7 @@ export default function AdminPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="h-[500px] rounded-md overflow-hidden border relative">
+            <div ref={mapContainerRef} className="h-[500px] rounded-md overflow-hidden border relative">
               {parcelsFetching && (
                 <div className="absolute inset-0 bg-background/50 z-10 flex items-center justify-center">
                   <div className="bg-card p-4 rounded-md shadow-lg">
@@ -759,8 +815,8 @@ export default function AdminPage() {
               )}
               <ParcelMap 
                 parcels={selectedAreaId ? mapParcels : []}
-                center={selectedArea ? [selectedArea.centerLat, selectedArea.centerLng] : undefined}
-                zoom={selectedArea?.defaultZoom || 15}
+                center={mapCenter || (selectedArea ? [selectedArea.centerLat, selectedArea.centerLng] : undefined)}
+                zoom={mapZoom || selectedArea?.defaultZoom || 15}
                 onParcelClick={handleParcelClick}
                 adminMode={true}
               />
@@ -804,7 +860,7 @@ export default function AdminPage() {
                   data-testid="input-search"
                 />
               </div>
-              <AdminTable parcels={filteredParcels} />
+              <AdminTable parcels={filteredParcels} onLocateParcel={handleLocateParcel} />
             </CardContent>
           </Card>
         )}
