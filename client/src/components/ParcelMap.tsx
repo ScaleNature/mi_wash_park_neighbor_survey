@@ -31,6 +31,7 @@ interface ParcelMapProps {
 
 export interface ParcelMapRef {
   flyTo: (center: LatLngExpression, zoom: number) => void;
+  fitBounds: (bounds: [[number, number], [number, number]], padding?: number) => void;
 }
 
 function MapClickHandler() {
@@ -114,6 +115,11 @@ const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = 
     flyTo: (center: LatLngExpression, zoom: number) => {
       if (mapRef.current) {
         mapRef.current.flyTo(center, zoom, { duration: 0.5 });
+      }
+    },
+    fitBounds: (bounds: [[number, number], [number, number]], padding: number = 50) => {
+      if (mapRef.current) {
+        mapRef.current.fitBounds(bounds, { padding: [padding, padding], duration: 0.5 });
       }
     }
   }));
