@@ -27,6 +27,7 @@ interface ParcelMapProps {
   onParcelClick?: (parcelId: string) => void;
   adminMode?: boolean;
   fitBounds?: boolean;
+  flyToLocation?: { center: LatLngExpression; zoom: number; key: number } | null;
 }
 
 function MapClickHandler() {
@@ -68,13 +69,27 @@ function UpdateMapCenter({ center, zoom }: { center?: LatLngExpression, zoom: nu
       
       // Only update map if values actually changed
       if (valuesChanged) {
-        map.flyTo(center, zoom, { duration: 0.5 });
+        map.setView(center, zoom);
         // Update refs to track current values
         prevCenterRef.current = centerStr;
         prevZoomRef.current = zoom;
       }
     }
   }, [center, zoom, map]);
+  
+  return null;
+}
+
+function FlyToLocation({ flyToLocation }: { flyToLocation?: { center: LatLngExpression; zoom: number; key: number } | null }) {
+  const map = useMap();
+  const prevKeyRef = useRef<number | null>(null);
+  
+  useEffect(() => {
+    if (flyToLocation && flyToLocation.key !== prevKeyRef.current) {
+      map.flyTo(flyToLocation.center, flyToLocation.zoom, { duration: 0.5 });
+      prevKeyRef.current = flyToLocation.key;
+    }
+  }, [flyToLocation, map]);
   
   return null;
 }
@@ -102,7 +117,7 @@ function FitBoundsToParcel({ parcels, swapCoordinates }: { parcels: Parcel[], sw
   return null;
 }
 
-export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, adminMode = false, fitBounds = false }: ParcelMapProps) {
+export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, adminMode = false, fitBounds = false, flyToLocation = null }: ParcelMapProps) {
   const mapRef = useRef<LeafletMap>(null);
 
   const getParcelColor = (status: string, adminMode: boolean = false, isSelected: boolean = false) => {
@@ -187,6 +202,7 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
         ) : (
           <UpdateMapCenter center={center} zoom={zoom} />
         )}
+        <FlyToLocation flyToLocation={flyToLocation} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
