@@ -566,6 +566,18 @@ export class DbStorage implements IStorage {
     return areas[index];
   }
 
+  async deleteArea(id: string): Promise<boolean> {
+    const areas = await this.loadAreasFromFile();
+    const index = areas.findIndex(area => area.id === id);
+    
+    if (index === -1) return false;
+    
+    areas.splice(index, 1);
+    await this.saveAreasToFile(areas);
+    
+    return true;
+  }
+
   async addParcelToArea(areaId: string, parcelId: string): Promise<void> {
     const areas = await this.loadAreasFromFile();
     const area = areas.find(a => a.id === areaId);
