@@ -33,7 +33,7 @@ Preferred communication style: Simple, everyday language.
 **Authentication**: Session-based admin authentication uses bcrypt for password hashing (SALT_ROUNDS: 10).
 
 **Storage Layer**: Hybrid architecture combining file-based area storage with PostgreSQL database for survey responses.
-- Area definitions stored in `/data/areas.json` (read-only in production, editable in development)
+- Area definitions stored in `/data/areas.json` (fully manageable in all environments)
 - Survey responses stored in PostgreSQL database
 - Parcels loaded from GeoJSON file on startup and cached in database for query performance
 
@@ -43,10 +43,10 @@ Preferred communication style: Simple, everyday language.
 
 **File-Based Area Storage**: 
 - Area definitions stored in `/data/areas.json` as an array of area objects
-- Each area contains: id, name, centerLat, centerLng, defaultZoom, displayRadiusMeters
-- Areas can only be created/edited in development (controlled via `import.meta.env.DEV` check)
-- In production, areas are read-only and deployed with the application code
-- API routes enforce environment-based write protection
+- Each area contains: id, name, centerLat, centerLng, defaultZoom, displayRadiusMeters, parcelIds
+- Areas can be created, edited, and deleted in all environments
+- Admin panel provides full CRUD operations for area management
+- API routes provide protected endpoints for area modifications (admin authentication required)
 
 **Database Schema**:
 - `parcels` table stores parcel data and survey responses
@@ -87,19 +87,15 @@ Preferred communication style: Simple, everyday language.
 - Admin map displays all parcels within display radius from area center
 - Leaf markers indicate parcels within selected area radius
 - Survey access restricted to parcels matching area's nature phrase pattern
-- Areas are environment-aware: editable in development, read-only in production
+- Full CRUD operations available: create, edit, delete areas in all environments
+- Delete confirmation dialog prevents accidental deletions
+- Deleting an area does NOT delete survey responses (survey data persists on parcels)
 
 **Deployment Architecture**:
-- Area definitions deployed as static configuration with application code
+- Area definitions stored in `/data/areas.json` and fully manageable through admin interface
 - Survey responses remain in database, independent of area definitions
 - This allows area boundary changes without losing historical survey data
-- Production deployments include pre-configured area definitions from `/data/areas.json`
-
-**Environment-Based Features**:
-- `import.meta.env.DEV` (frontend) and `process.env.NODE_ENV === 'development'` (backend) control area editing
-- Admin UI conditionally renders area creation/editing forms based on environment
-- API routes validate environment before allowing area modifications
-- Provides clear separation between development configuration and production operation
+- Area deletions preserve all survey data associated with parcels
 
 ## External Dependencies
 
@@ -125,6 +121,9 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+- **Oct 22, 2025**: Removed environment restrictions - areas now fully manageable (create, edit, delete) in production
+- **Oct 22, 2025**: Implemented Delete Area functionality with confirmation dialog (preserves survey data on parcels)
+- **Oct 22, 2025**: Reorganized Application Settings card - Admin Email and Admin Password fields now display side-by-side
 - **Oct 20, 2025**: Implemented two-step loading UI for admin map with separate status messages: "Step 1: Showing X assigned parcels" and "Step 2: Showing Y optional parcels within Zm radius"
 - **Oct 20, 2025**: Optimized admin map to fetch parcels once and split client-side instead of duplicate API calls, improving performance
 - **Oct 20, 2025**: Enhanced parcel rendering with better visibility - increased fill opacity to 35%, solid borders (50% opacity) for assigned parcels, dashed borders (30% opacity) for optional parcels
@@ -139,9 +138,9 @@ Preferred communication style: Simple, everyday language.
 
 ## Key Files
 
-- `/data/areas.json` - Area definitions (editable in dev only)
-- `server/dbStorage.ts` - Database storage implementation with file-based area loading
-- `server/routes.ts` - API routes with environment-based area write protection
+- `/data/areas.json` - Area definitions (fully manageable via admin interface)
+- `server/dbStorage.ts` - Database storage implementation with file-based area loading and CRUD operations
+- `server/routes.ts` - API routes for area management (protected by admin authentication)
 - `shared/schema.ts` - Simplified schema with only parcels table
-- `client/src/pages/AdminPage.tsx` - Admin interface with environment-aware area management
+- `client/src/pages/AdminPage.tsx` - Admin interface with full area management (create, edit, delete)
 - `attached_assets/washtenaw_parcels_full.geojson` - Locked parcel reference data (126,639 parcels)
