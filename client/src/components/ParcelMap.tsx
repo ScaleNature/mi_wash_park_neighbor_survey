@@ -234,16 +234,16 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
                   </div>
                   <div className="text-sm text-muted-foreground">
                     {parcel.q1Response == null && parcel.q2Response == null && parcel.q3Response == null && (
-                      <p>No Response</p>
+                      <div>No Response</div>
                     )}
                     {parcel.q1Response === true && (
-                      <p>Supports Park Border Care</p>
+                      <div>Supports Park Border Care</div>
                     )}
                     {parcel.q2Response === true && (
-                      <p>Appreciates Parcel Help</p>
+                      <div>Appreciates Parcel Help</div>
                     )}
                     {parcel.q3Response === true && (
-                      <p>Compost Bin Usage Allowed</p>
+                      <div>Compost Bin Usage Allowed</div>
                     )}
                   </div>
                   <Link href="/survey">
