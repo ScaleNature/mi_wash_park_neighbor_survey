@@ -1,7 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Copy, Edit, RefreshCw } from "lucide-react";
+import { Copy, Edit, RefreshCw, Link } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -37,6 +37,16 @@ export default function AdminTable({ parcels }: AdminTableProps) {
     toast({
       title: "Copied!",
       description: "Code phrase copied to clipboard",
+    });
+  };
+
+  const copyLoginLink = (parcel: ParcelAdmin) => {
+    const baseUrl = window.location.origin;
+    const loginUrl = `${baseUrl}/survey?code=${encodeURIComponent(parcel.shortCode || '')}&phrase=${encodeURIComponent(parcel.codePhrase)}`;
+    navigator.clipboard.writeText(loginUrl);
+    toast({
+      title: "Login link copied!",
+      description: "Share this link with the parcel owner",
     });
   };
 
@@ -163,6 +173,15 @@ export default function AdminTable({ parcels }: AdminTableProps) {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => copyLoginLink(parcel)}
+                      data-testid={`button-copy-login-${parcel.id}`}
+                      title="Copy login link"
+                    >
+                      <Link className="h-4 w-4" />
+                    </Button>
                     <Button
                       size="icon"
                       variant="ghost"
