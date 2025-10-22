@@ -233,13 +233,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Toggle parcel in area (protected)
   app.post("/api/admin/areas/:areaId/parcels/:parcelId/toggle", isAdmin, async (req, res) => {
-    // Only allow parcel assignment in development
-    if (process.env.NODE_ENV !== 'development') {
-      return res.status(403).json({ 
-        message: "Parcel assignment is only allowed in development environment" 
-      });
-    }
-    
     try {
       const { areaId, parcelId } = req.params;
       
@@ -259,13 +252,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create new area (protected)
   app.post("/api/admin/areas", isAdmin, async (req, res) => {
-    // Only allow area creation in development
-    if (process.env.NODE_ENV !== 'development') {
-      return res.status(403).json({ 
-        message: "Area creation is only allowed in development environment" 
-      });
-    }
-    
     try {
       // Validate request body
       const createSchema = z.object({
@@ -294,13 +280,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Update area settings (protected)
   app.patch("/api/admin/areas/:areaId", isAdmin, async (req, res) => {
-    // Only allow area updates in development
-    if (process.env.NODE_ENV !== 'development') {
-      return res.status(403).json({ 
-        message: "Area updates are only allowed in development environment" 
-      });
-    }
-    
     try {
       const { areaId } = req.params;
       
@@ -326,6 +305,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error.name === 'ZodError') {
         return res.status(400).json({ message: "Invalid request data", errors: error.errors });
       }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete area (protected)
+  app.delete("/api/admin/areas/:areaId", isAdmin, async (req, res) => {
+    try {
+      const { areaId } = req.params;
+      
+      const deleted = await storage.deleteArea(areaId);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Area not found" });
+      }
+      
+      res.json({ message: "Area deleted successfully" });
+    } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
