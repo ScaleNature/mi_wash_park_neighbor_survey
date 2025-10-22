@@ -444,17 +444,17 @@ export default function AdminPage() {
             <CardDescription>Configure the application name and admin credentials</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="app-name">Application Name</Label>
+              <Input
+                id="app-name"
+                value={appName}
+                onChange={(e) => setAppName(e.target.value)}
+                className="mt-2"
+                data-testid="input-app-name"
+              />
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="app-name">Application Name</Label>
-                <Input
-                  id="app-name"
-                  value={appName}
-                  onChange={(e) => setAppName(e.target.value)}
-                  className="mt-2"
-                  data-testid="input-app-name"
-                />
-              </div>
               <div>
                 <Label htmlFor="admin-email">Admin Email</Label>
                 <Input
@@ -466,18 +466,18 @@ export default function AdminPage() {
                   data-testid="input-admin-email-setting"
                 />
               </div>
-            </div>
-            <div>
-              <Label htmlFor="admin-password">Admin Password (leave empty to keep current)</Label>
-              <Input
-                id="admin-password"
-                type="password"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                className="mt-2"
-                placeholder="Enter new password to change"
-                data-testid="input-admin-password-setting"
-              />
+              <div>
+                <Label htmlFor="admin-password">Admin Password (leave empty to keep current)</Label>
+                <Input
+                  id="admin-password"
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="mt-2"
+                  placeholder="Enter new password to change"
+                  data-testid="input-admin-password-setting"
+                />
+              </div>
             </div>
             <Button
               onClick={handleSaveSettings}
