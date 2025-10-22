@@ -1,7 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Copy, Edit, RefreshCw, Link } from "lucide-react";
+import { Copy, Edit, RefreshCw, Link, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -24,9 +24,10 @@ export interface ParcelAdmin {
 
 interface AdminTableProps {
   parcels: ParcelAdmin[];
+  onLocateParcel?: (parcelId: string) => void;
 }
 
-export default function AdminTable({ parcels }: AdminTableProps) {
+export default function AdminTable({ parcels, onLocateParcel }: AdminTableProps) {
   const { toast } = useToast();
   const [editingParcel, setEditingParcel] = useState<ParcelAdmin | null>(null);
   const [editAddress, setEditAddress] = useState('');
@@ -173,6 +174,17 @@ export default function AdminTable({ parcels }: AdminTableProps) {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
+                    {onLocateParcel && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => onLocateParcel(parcel.id)}
+                        data-testid={`button-locate-${parcel.id}`}
+                        title="Locate on map"
+                      >
+                        <MapPin className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       size="icon"
                       variant="ghost"
