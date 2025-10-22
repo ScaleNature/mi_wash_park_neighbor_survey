@@ -1,6 +1,6 @@
 import AdminTable, { ParcelAdmin } from "@/components/AdminTable";
 import AdminLogin from "@/components/AdminLogin";
-import ParcelMap from "@/components/ParcelMap";
+import ParcelMap, { ParcelMapRef } from "@/components/ParcelMap";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -33,8 +33,8 @@ export default function AdminPage() {
   // Delete confirmation dialog state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
-  // Map focus state for locate parcel feature
-  const [flyToLocation, setFlyToLocation] = useState<{ center: [number, number]; zoom: number; key: number } | null>(null);
+  // Map ref for locate parcel feature
+  const mapRef = useRef<ParcelMapRef>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   
   const { toast } = useToast();
@@ -113,8 +113,6 @@ export default function AdminPage() {
       setAreaCenterLocation(`${selectedArea.centerLat},${selectedArea.centerLng}`);
       setAreaZoom(selectedArea.defaultZoom.toString());
       setAreaDisplayRadius(selectedArea.displayRadiusMeters.toString());
-      // Reset map focus when area changes
-      setFlyToLocation(null);
     }
   }, [selectedAreaId, areas]);
 
@@ -374,17 +372,15 @@ export default function AdminPage() {
     const centerLat = sumLat / ring.length;
     const centerLng = sumLng / ring.length;
 
-    // Trigger map fly-to with a new key to ensure it fires
-    setFlyToLocation({
-      center: [centerLat, centerLng],
-      zoom: 18,
-      key: Date.now()
-    });
-
-    // Scroll to map
+    // Scroll to map first
     if (mapContainerRef.current) {
       mapContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+
+    // Then fly to parcel after a brief delay to ensure scroll completes
+    setTimeout(() => {
+      mapRef.current?.flyTo([centerLat, centerLng], 18);
+    }, 500);
 
     toast({
       title: "Parcel located",
@@ -818,11 +814,11 @@ export default function AdminPage() {
                 </div>
               )}
               <ParcelMap 
+                ref={mapRef}
                 parcels={selectedAreaId ? mapParcels : []}
                 center={selectedArea ? [selectedArea.centerLat, selectedArea.centerLng] : undefined}
                 zoom={selectedArea?.defaultZoom || 15}
                 onParcelClick={handleParcelClick}
-                flyToLocation={flyToLocation}
                 adminMode={true}
               />
             </div>

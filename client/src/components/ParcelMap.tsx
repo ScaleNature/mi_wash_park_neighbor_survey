@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { MapContainer, TileLayer, Polygon, Popup, Marker, useMap, useMapEvents, WMSTileLayer } from 'react-leaflet';
 import { LatLngExpression, Map as LeafletMap, divIcon, LatLngBounds } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -27,7 +27,10 @@ interface ParcelMapProps {
   onParcelClick?: (parcelId: string) => void;
   adminMode?: boolean;
   fitBounds?: boolean;
-  flyToLocation?: { center: LatLngExpression; zoom: number; key: number } | null;
+}
+
+export interface ParcelMapRef {
+  flyTo: (center: LatLngExpression, zoom: number) => void;
 }
 
 function MapClickHandler() {
@@ -80,19 +83,6 @@ function UpdateMapCenter({ center, zoom }: { center?: LatLngExpression, zoom: nu
   return null;
 }
 
-function FlyToLocation({ flyToLocation }: { flyToLocation?: { center: LatLngExpression; zoom: number; key: number } | null }) {
-  const map = useMap();
-  const prevKeyRef = useRef<number | null>(null);
-  
-  useEffect(() => {
-    if (flyToLocation && flyToLocation.key !== prevKeyRef.current) {
-      map.flyTo(flyToLocation.center, flyToLocation.zoom, { duration: 0.5 });
-      prevKeyRef.current = flyToLocation.key;
-    }
-  }, [flyToLocation, map]);
-  
-  return null;
-}
 
 function FitBoundsToParcel({ parcels, swapCoordinates }: { parcels: Parcel[], swapCoordinates: (coords: LatLngExpression[][]) => LatLngExpression[][] }) {
   const map = useMap();
@@ -117,8 +107,16 @@ function FitBoundsToParcel({ parcels, swapCoordinates }: { parcels: Parcel[], sw
   return null;
 }
 
-export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, adminMode = false, fitBounds = false, flyToLocation = null }: ParcelMapProps) {
+const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, adminMode = false, fitBounds = false }, ref) => {
   const mapRef = useRef<LeafletMap>(null);
+
+  useImperativeHandle(ref, () => ({
+    flyTo: (center: LatLngExpression, zoom: number) => {
+      if (mapRef.current) {
+        mapRef.current.flyTo(center, zoom, { duration: 0.5 });
+      }
+    }
+  }));
 
   const getParcelColor = (status: string, adminMode: boolean = false, isSelected: boolean = false) => {
     if (adminMode) {
@@ -202,7 +200,6 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
         ) : (
           <UpdateMapCenter center={center} zoom={zoom} />
         )}
-        <FlyToLocation flyToLocation={flyToLocation} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -354,4 +351,8 @@ export default function ParcelMap({ parcels, center = [42.2808, -83.7430], zoom 
       )}
     </div>
   );
-}
+});
+
+ParcelMap.displayName = 'ParcelMap';
+
+export default ParcelMap;
