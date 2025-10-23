@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, X } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 
@@ -130,6 +130,22 @@ export default function SurveyForm({
                 I welcome Park Stewards to remove invasive species in Molin Nature Area near my property.
               </CardDescription>
             </div>
+            {(q1 || q1Comment) && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setQ1('');
+                  setQ1Comment('');
+                }}
+                className="shrink-0"
+                data-testid="button-clear-q1"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear Answer
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -169,6 +185,22 @@ export default function SurveyForm({
                 As community partners, I understand that Park Stewards are available to assist me in the removal of the same species on my property, through either consultation, removal assistance, or donation based work.
               </CardDescription>
             </div>
+            {(q2 || q2Comment) && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setQ2('');
+                  setQ2Comment('');
+                }}
+                className="shrink-0"
+                data-testid="button-clear-q2"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear Answer
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -208,6 +240,22 @@ export default function SurveyForm({
                 During the spring season, Park Stewards pull and compost bags of invasive species like Garlic Mustard and Dame's Rocket. I welcome Park Stewards to use my compost bin, as appropriate to more easily dispose of such material.
               </CardDescription>
             </div>
+            {(q3 || q3Comment) && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setQ3('');
+                  setQ3Comment('');
+                }}
+                className="shrink-0"
+                data-testid="button-clear-q3"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear Answer
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
