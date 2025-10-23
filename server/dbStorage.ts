@@ -73,6 +73,15 @@ export interface IStorage {
   getParcelsInArea(areaId: string): Promise<string[]>;
   isParcelInArea(areaId: string, parcelId: string): Promise<boolean>;
   isParcelInAnyArea(parcelId: string): Promise<boolean>;
+  getAreaStatistics(areaId: string): Promise<{
+    totalParcels: number;
+    q1YesCount: number;
+    q1Percentage: number;
+    q2YesCount: number;
+    q2Percentage: number;
+    q3YesCount: number;
+    q3Percentage: number;
+  }>;
 }
 
 export class DbStorage implements IStorage {
@@ -617,6 +626,57 @@ export class DbStorage implements IStorage {
   async isParcelInAnyArea(parcelId: string): Promise<boolean> {
     const areas = await this.loadAreasFromFile();
     return areas.some(area => area.parcelIds.includes(parcelId));
+  }
+
+  async getAreaStatistics(areaId: string): Promise<{
+    totalParcels: number;
+    q1YesCount: number;
+    q1Percentage: number;
+    q2YesCount: number;
+    q2Percentage: number;
+    q3YesCount: number;
+    q3Percentage: number;
+  }> {
+    const area = await this.getAreaById(areaId);
+    
+    if (!area) {
+      throw new Error("Area not found");
+    }
+
+    const totalParcels = area.parcelIds.length;
+    
+    if (totalParcels === 0) {
+      return {
+        totalParcels: 0,
+        q1YesCount: 0,
+        q1Percentage: 0,
+        q2YesCount: 0,
+        q2Percentage: 0,
+        q3YesCount: 0,
+        q3Percentage: 0,
+      };
+    }
+
+    // Get all parcels in the area
+    const areaParcels = await this.db
+      .select()
+      .from(parcels)
+      .where(inArray(parcels.id, area.parcelIds));
+
+    // Count yes responses for each question
+    const q1YesCount = areaParcels.filter(p => p.q1Response === true).length;
+    const q2YesCount = areaParcels.filter(p => p.q2Response === true).length;
+    const q3YesCount = areaParcels.filter(p => p.q3Response === true).length;
+
+    return {
+      totalParcels,
+      q1YesCount,
+      q1Percentage: Math.round((q1YesCount / totalParcels) * 100),
+      q2YesCount,
+      q2Percentage: Math.round((q2YesCount / totalParcels) * 100),
+      q3YesCount,
+      q3Percentage: Math.round((q3YesCount / totalParcels) * 100),
+    };
   }
 }
 
