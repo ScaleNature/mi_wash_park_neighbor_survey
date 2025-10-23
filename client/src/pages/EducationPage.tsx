@@ -2,6 +2,9 @@ import { useState } from "react";
 import SpeciesCard, { Species } from "@/components/SpeciesCard";
 import SeasonalCalendar, { CalendarItem } from "@/components/SeasonalCalendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useQuery } from "@tanstack/react-query";
+import { Mail } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
 const woodySpecies: Species[] = [
   {
@@ -86,9 +89,29 @@ const calendar: CalendarItem[] = [
 export default function EducationPage() {
   const [activeTab, setActiveTab] = useState('woody');
 
+  const { data: settings } = useQuery<{ adminEmail: string }>({
+    queryKey: ["/api/settings"],
+  });
+
   return (
     <div className="min-h-[calc(100vh-4rem)] p-6">
       <div className="max-w-6xl mx-auto space-y-8">
+        {settings?.adminEmail && (
+          <Card className="p-4 bg-primary/5 border-primary/20">
+            <div className="flex items-center gap-2 text-sm">
+              <Mail className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">Questions? Contact:</span>
+              <a 
+                href={`mailto:${settings.adminEmail}`} 
+                className="font-medium text-primary hover:underline"
+                data-testid="link-admin-email"
+              >
+                {settings.adminEmail}
+              </a>
+            </div>
+          </Card>
+        )}
+        
         <div>
           <h1 className="text-4xl font-serif font-bold mb-3">Invasive Species Guide</h1>
           <p className="text-lg text-muted-foreground">
