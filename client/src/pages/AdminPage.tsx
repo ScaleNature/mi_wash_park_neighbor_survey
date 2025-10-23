@@ -75,6 +75,20 @@ export default function AdminPage() {
     enabled: !!session?.isAdmin && !!selectedAreaId,
   });
 
+  // Get area statistics
+  const { data: areaStatistics, isLoading: statisticsLoading } = useQuery<{
+    totalParcels: number;
+    q1YesCount: number;
+    q1Percentage: number;
+    q2YesCount: number;
+    q2Percentage: number;
+    q3YesCount: number;
+    q3Percentage: number;
+  }>({
+    queryKey: ["/api/areas", selectedAreaId, "statistics"],
+    enabled: !!session?.isAdmin && !!selectedAreaId,
+  });
+
   // Fetch all parcels (assigned + optional) from the server in one call
   const { data: allMapParcels = [], isLoading: allParcelsLoading, isFetching: allParcelsFetching } = useQuery<Parcel[]>({
     queryKey: ["/api/admin/areas", selectedAreaId, "map-parcels"],
@@ -866,6 +880,49 @@ export default function AdminPage() {
                 />
               </div>
               <AdminTable parcels={filteredParcels} onLocateParcel={handleLocateParcel} />
+            </CardContent>
+          </Card>
+        )}
+
+        {selectedAreaId && areaStatistics && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Area Statistics for {selectedArea?.name}</CardTitle>
+              <CardDescription>Survey response summary for this area</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {statisticsLoading ? (
+                <div className="text-muted-foreground">Loading statistics...</div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <div className="font-medium text-sm mb-1">
+                      Question 1: Permission for invasive species removal on property border
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      ✓ {areaStatistics.q1Percentage}% support ({areaStatistics.q1YesCount} yes / {areaStatistics.totalParcels} total parcels)
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="font-medium text-sm mb-1">
+                      Question 2: Interest in assistance for invasive species removal on own property
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      ✓ {areaStatistics.q2Percentage}% interested ({areaStatistics.q2YesCount} yes / {areaStatistics.totalParcels} total parcels)
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="font-medium text-sm mb-1">
+                      Question 3: Willingness to share a compost bin with park stewards
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      ✓ {areaStatistics.q3Percentage}% willing ({areaStatistics.q3YesCount} yes / {areaStatistics.totalParcels} total parcels)
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
