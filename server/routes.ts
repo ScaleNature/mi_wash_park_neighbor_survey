@@ -155,6 +155,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get statistics for a specific area
+  app.get("/api/areas/:areaId/statistics", async (req, res) => {
+    try {
+      const { areaId } = req.params;
+      const statistics = await storage.getAreaStatistics(areaId);
+      res.json(statistics);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get all parcels that are in any area (for public survey map)
   app.get("/api/survey/parcels", async (_req, res) => {
     try {
