@@ -1,6 +1,6 @@
-import { useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useRef, useEffect, forwardRef, useImperativeHandle, useState } from 'react';
 import { MapContainer, TileLayer, Polygon, Popup, Marker, useMap, useMapEvents, WMSTileLayer } from 'react-leaflet';
-import { LatLngExpression, Map as LeafletMap, divIcon, LatLngBounds } from 'leaflet';
+import { LatLngExpression, Map as LeafletMap, divIcon, LatLngBounds, DivIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Trash2, ExternalLink, Leaf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,36 @@ interface ParcelMapProps {
 export interface ParcelMapRef {
   flyTo: (center: LatLngExpression, zoom: number) => void;
   fitBounds: (bounds: [[number, number], [number, number]], padding?: number) => void;
+}
+
+// Utility: Calculate meters per pixel at given zoom level and latitude
+function getMetersPerPixel(map: LeafletMap): number {
+  const zoom = map.getZoom();
+  const lat = map.getCenter().lat;
+  // Formula for EPSG:3857 (Web Mercator)
+  return 156543.03392 * Math.cos(lat * Math.PI / 180) / Math.pow(2, zoom);
+}
+
+// Utility: Convert meters to pixels
+function metersToPixels(meters: number, map: LeafletMap): number {
+  const metersPerPixel = getMetersPerPixel(map);
+  return meters / metersPerPixel;
+}
+
+// Utility: Extract house number from address
+function extractHouseNumber(address?: string): string | null {
+  if (!address) return null;
+  // Match leading digits in address
+  const match = address.match(/^\d+/);
+  return match ? match[0] : null;
+}
+
+// Utility: Offset a position by meters north/south
+function offsetPosition(position: LatLngExpression, metersNorth: number): LatLngExpression {
+  const [lat, lng] = position as [number, number];
+  // ~111,111 meters per degree latitude
+  const latOffset = metersNorth / 111111;
+  return [lat + latOffset, lng];
 }
 
 function MapClickHandler() {
@@ -108,6 +138,181 @@ function FitBoundsToParcel({ parcels, swapCoordinates }: { parcels: Parcel[], sw
   return null;
 }
 
+// Component to handle dynamic markers and labels that scale with zoom
+function DynamicMarkers({ 
+  parcels, 
+  adminMode, 
+  getParcelCenter 
+}: { 
+  parcels: Parcel[], 
+  adminMode: boolean,
+  getParcelCenter: (coords: LatLngExpression[][]) => LatLngExpression
+}) {
+  const map = useMap();
+  const [currentZoom, setCurrentZoom] = useState(map.getZoom());
+  
+  // Listen to zoom changes
+  useMapEvents({
+    zoomend: () => {
+      setCurrentZoom(map.getZoom());
+    },
+  });
+  
+  // Icon physical sizes in meters
+  const ICON_SIZE_METERS = 3; // ~10 feet
+  const TEXT_HEIGHT_METERS = 1.5; // ~5 feet
+  const VERTICAL_OFFSET_METERS = 3; // ~10 feet separation
+  
+  // Calculate pixel sizes
+  const iconSizePixels = metersToPixels(ICON_SIZE_METERS, map);
+  const textHeightPixels = metersToPixels(TEXT_HEIGHT_METERS, map);
+  
+  // Only show address labels at zoom 17+
+  const showAddressLabels = currentZoom >= 17;
+  
+  return (
+    <>
+      {/* Leaf markers for assigned parcels in admin mode */}
+      {adminMode && parcels.filter(p => p.selected).map((parcel) => {
+        const center = getParcelCenter(parcel.coordinates);
+        const iconPosition = offsetPosition(center, -VERTICAL_OFFSET_METERS);
+        
+        const leafIcon = divIcon({
+          html: renderToStaticMarkup(
+            <div 
+              className="flex items-center justify-center bg-green-600 rounded-full shadow-lg"
+              style={{
+                width: `${iconSizePixels}px`,
+                height: `${iconSizePixels}px`
+              }}
+            >
+              <Leaf 
+                className="text-white" 
+                style={{ 
+                  width: `${iconSizePixels * 0.6}px`,
+                  height: `${iconSizePixels * 0.6}px`
+                }}
+              />
+            </div>
+          ),
+          className: 'dynamic-leaf-marker',
+          iconSize: [iconSizePixels, iconSizePixels],
+          iconAnchor: [iconSizePixels / 2, iconSizePixels / 2],
+        });
+        
+        return (
+          <Marker
+            key={`leaf-${parcel.id}`}
+            position={iconPosition}
+            icon={leafIcon}
+          >
+            <Popup>
+              <div className="p-2 space-y-2" data-testid={`popup-admin-leaf-${parcel.id}`}>
+                <div>
+                  {parcel.address && <p className="font-semibold">{parcel.address}</p>}
+                  <p className="text-xs font-mono text-muted-foreground">
+                    ID: {parcel.id}
+                  </p>
+                </div>
+                <div className="text-sm space-y-1">
+                  <p><strong>Q1 (Removal Permission):</strong> {parcel.q1Response == null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
+                  <p><strong>Q2 (Assistance Interest):</strong> {parcel.q2Response == null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
+                  <p><strong>Q3 (Compost Sharing):</strong> {parcel.q3Response == null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
+                </div>
+                <Link href={`/survey?parcelId=${encodeURIComponent(parcel.id)}`}>
+                  <Button 
+                    size="sm" 
+                    variant="default" 
+                    className="w-full mt-1"
+                    data-testid={`button-edit-survey-${parcel.id}`}
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Edit Survey Response
+                  </Button>
+                </Link>
+              </div>
+            </Popup>
+          </Marker>
+        );
+      })}
+      
+      {/* Compost bin markers */}
+      {parcels.filter(p => p.hasCompost).map((parcel) => {
+        const center = getParcelCenter(parcel.coordinates);
+        const iconPosition = offsetPosition(center, -VERTICAL_OFFSET_METERS);
+        
+        const compostIcon = divIcon({
+          html: renderToStaticMarkup(
+            <div 
+              className="flex items-center justify-center bg-primary rounded-full shadow-md"
+              style={{
+                width: `${iconSizePixels}px`,
+                height: `${iconSizePixels}px`
+              }}
+            >
+              <Trash2 
+                className="text-primary-foreground" 
+                style={{ 
+                  width: `${iconSizePixels * 0.5}px`,
+                  height: `${iconSizePixels * 0.5}px`
+                }}
+              />
+            </div>
+          ),
+          className: 'dynamic-compost-marker',
+          iconSize: [iconSizePixels, iconSizePixels],
+          iconAnchor: [iconSizePixels / 2, iconSizePixels / 2],
+        });
+        
+        return (
+          <Marker
+            key={`compost-${parcel.id}`}
+            position={iconPosition}
+            icon={compostIcon}
+          />
+        );
+      })}
+      
+      {/* Address number labels at zoom 17+ */}
+      {showAddressLabels && parcels.map((parcel) => {
+        const houseNumber = extractHouseNumber(parcel.address);
+        if (!houseNumber) return null;
+        
+        const center = getParcelCenter(parcel.coordinates);
+        const labelPosition = offsetPosition(center, VERTICAL_OFFSET_METERS);
+        
+        const addressIcon = divIcon({
+          html: renderToStaticMarkup(
+            <div 
+              className="flex items-center justify-center font-semibold text-slate-600"
+              style={{
+                fontSize: `${textHeightPixels}px`,
+                lineHeight: '1',
+                textShadow: '0 0 2px white, 0 0 4px white',
+                opacity: 0.8
+              }}
+            >
+              {houseNumber}
+            </div>
+          ),
+          className: 'address-label',
+          iconSize: [textHeightPixels * 3, textHeightPixels],
+          iconAnchor: [textHeightPixels * 1.5, textHeightPixels / 2],
+        });
+        
+        return (
+          <Marker
+            key={`address-${parcel.id}`}
+            position={labelPosition}
+            icon={addressIcon}
+            interactive={false}
+          />
+        );
+      })}
+    </>
+  );
+}
+
 const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, adminMode = false, fitBounds = false }, ref) => {
   const mapRef = useRef<LeafletMap>(null);
 
@@ -167,28 +372,6 @@ const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = 
       (Math.min(...lngs) + Math.max(...lngs)) / 2
     ];
   };
-
-  const compostIcon = divIcon({
-    html: renderToStaticMarkup(
-      <div className="flex items-center justify-center w-8 h-8 bg-primary rounded-full shadow-md">
-        <Trash2 className="h-4 w-4 text-primary-foreground" />
-      </div>
-    ),
-    className: 'compost-marker',
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-  });
-
-  const leafIcon = divIcon({
-    html: renderToStaticMarkup(
-      <div className="flex items-center justify-center w-8 h-8 bg-green-600 rounded-full shadow-lg">
-        <Leaf className="h-5 w-5 text-white" />
-      </div>
-    ),
-    className: 'leaf-marker',
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
-  });
 
   return (
     <div className="relative w-full h-full" data-testid="map-container">
@@ -283,53 +466,11 @@ const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = 
           );
         }
         )}
-        {adminMode && parcels.filter(p => p.selected).map((parcel) => {
-          const leafletCoords = swapCoordinates(parcel.coordinates);
-          return (
-            <Marker
-              key={`leaf-${parcel.id}`}
-              position={getParcelCenter(leafletCoords)}
-              icon={leafIcon}
-            >
-              <Popup>
-                <div className="p-2 space-y-2" data-testid={`popup-admin-leaf-${parcel.id}`}>
-                  <div>
-                    {parcel.address && <p className="font-semibold">{parcel.address}</p>}
-                    <p className="text-xs font-mono text-muted-foreground">
-                      ID: {parcel.id}
-                    </p>
-                  </div>
-                  <div className="text-sm space-y-1">
-                    <p><strong>Q1 (Removal Permission):</strong> {parcel.q1Response == null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
-                    <p><strong>Q2 (Assistance Interest):</strong> {parcel.q2Response == null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
-                    <p><strong>Q3 (Compost Sharing):</strong> {parcel.q3Response == null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
-                  </div>
-                  <Link href={`/survey?parcelId=${encodeURIComponent(parcel.id)}`}>
-                    <Button 
-                      size="sm" 
-                      variant="default" 
-                      className="w-full mt-1"
-                      data-testid={`button-edit-survey-${parcel.id}`}
-                    >
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      Edit Survey Response
-                    </Button>
-                  </Link>
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
-        {parcels.filter(p => p.hasCompost).map((parcel) => {
-          const leafletCoords = swapCoordinates(parcel.coordinates);
-          return (
-            <Marker
-              key={`compost-${parcel.id}`}
-              position={getParcelCenter(leafletCoords)}
-              icon={compostIcon}
-            />
-          );
-        })}
+        <DynamicMarkers 
+          parcels={parcels.map(p => ({ ...p, coordinates: swapCoordinates(p.coordinates) }))}
+          adminMode={adminMode}
+          getParcelCenter={getParcelCenter}
+        />
       </MapContainer>
 
       {!adminMode && (
