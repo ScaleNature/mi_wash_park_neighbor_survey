@@ -14,9 +14,12 @@ interface ParcelData {
     coordinates: number[][][];
   };
   address?: string | null;
+  shortCode?: string | null;
+  codePhrase?: string | null;
   q1Response?: boolean | null;
   q2Response?: boolean | null;
   q3Response?: boolean | null;
+  responseDate?: string | null;
 }
 
 interface Area {
@@ -70,11 +73,14 @@ export default function MapPage() {
     id: p.id,
     coordinates: p.geometry.coordinates as LatLngExpression[][],
     address: p.address || undefined,
+    shortCode: p.shortCode || undefined,
+    codePhrase: p.codePhrase || undefined,
     status: calculateStatus(p.q1Response, p.q2Response),
     hasCompost: p.q3Response || false,
     q1Response: p.q1Response,
     q2Response: p.q2Response,
     q3Response: p.q3Response,
+    responseDate: p.responseDate || undefined,
   })) || [];
 
   const handleParcelClick = (parcelId: string) => {

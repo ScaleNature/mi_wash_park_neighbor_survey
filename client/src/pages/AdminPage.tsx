@@ -836,8 +836,9 @@ export default function AdminPage() {
                 parcels={selectedAreaId ? mapParcels : []}
                 center={selectedArea ? [selectedArea.centerLat, selectedArea.centerLng] : undefined}
                 zoom={selectedArea?.defaultZoom || 15}
-                onParcelClick={handleParcelClick}
+                onToggleArea={handleParcelClick}
                 adminMode={true}
+                isAdminMap={true}
               />
             </div>
             {selectedAreaId && (
