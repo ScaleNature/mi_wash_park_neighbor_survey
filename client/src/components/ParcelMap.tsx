@@ -19,9 +19,13 @@ export interface Parcel {
   hasCompost: boolean;
   selected?: boolean;
   q1Response?: boolean | null;
+  q1Comment?: string | null;
   q2Response?: boolean | null;
+  q2Comment?: string | null;
   q3Response?: boolean | null;
+  q3Comment?: string | null;
   responseDate?: string | null;
+  areaNames?: string[];
 }
 
 interface ParcelMapProps {
@@ -357,16 +361,46 @@ function ParcelPopupContent({
 
   // Standard user mode (not admin)
   if (!adminMode) {
+    const hasResponses = parcel.q1Response !== null || parcel.q2Response !== null || parcel.q3Response !== null;
+    
     return (
-      <div className="p-2 space-y-2" data-testid={`popup-user-${parcel.id}`}>
+      <div className="p-2 space-y-2 min-w-[220px]" data-testid={`popup-user-${parcel.id}`}>
         <div>
           {parcel.address && <p className="font-semibold">{parcel.address}</p>}
         </div>
-        {parcel.responseDate && (
-          <p className="text-xs text-muted-foreground">
-            Survey completed on {new Date(parcel.responseDate).toLocaleDateString()}
-          </p>
+        
+        {hasResponses && (
+          <div className="space-y-2">
+            <div className="text-sm space-y-1 border-t pt-2">
+              <p className="font-semibold text-xs text-muted-foreground">Survey Responses:</p>
+              
+              <div>
+                <p className="text-sm"><strong>Q1: Border Care Permission</strong></p>
+                <p className="text-sm">{parcel.q1Response === null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
+                {parcel.q1Comment && <p className="text-xs text-muted-foreground italic">"{parcel.q1Comment}"</p>}
+              </div>
+              
+              <div>
+                <p className="text-sm"><strong>Q2: Property Assistance</strong></p>
+                <p className="text-sm">{parcel.q2Response === null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
+                {parcel.q2Comment && <p className="text-xs text-muted-foreground italic">"{parcel.q2Comment}"</p>}
+              </div>
+              
+              <div>
+                <p className="text-sm"><strong>Q3: Compost Bin Sharing</strong></p>
+                <p className="text-sm">{parcel.q3Response === null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
+                {parcel.q3Comment && <p className="text-xs text-muted-foreground italic">"{parcel.q3Comment}"</p>}
+              </div>
+            </div>
+            
+            {parcel.responseDate && (
+              <p className="text-xs text-muted-foreground">
+                Completed: {new Date(parcel.responseDate).toLocaleDateString()}
+              </p>
+            )}
+          </div>
         )}
+        
         <Link href="/survey">
           <Button 
             size="sm" 
@@ -384,7 +418,7 @@ function ParcelPopupContent({
 
   // Admin mode - main map or admin map
   return (
-    <div className="p-2 space-y-2 min-w-[200px]" data-testid={`popup-admin-${parcel.id}`}>
+    <div className="p-2 space-y-2 min-w-[250px]" data-testid={`popup-admin-${parcel.id}`}>
       <div>
         {parcel.address && <p className="font-semibold">{parcel.address}</p>}
         <p className="text-xs font-mono text-muted-foreground">
@@ -397,17 +431,72 @@ function ParcelPopupContent({
         )}
       </div>
       
+      {parcel.areaNames && parcel.areaNames.length > 0 && (
+        <div className="border-t pt-2">
+          <p className="text-xs font-semibold text-muted-foreground mb-1">Area Assignment:</p>
+          <div className="flex flex-wrap gap-1">
+            {parcel.areaNames.map((areaName, idx) => (
+              <Badge key={idx} variant="secondary" className="text-xs">
+                {areaName}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+      
       <Badge variant="outline" className={statusColors[parcel.status]}>
         {statusLabels[parcel.status]}
       </Badge>
 
-      <div className="text-sm space-y-1">
-        <p><strong>Q1:</strong> {parcel.q1Response == null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
-        <p><strong>Q2:</strong> {parcel.q2Response == null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
-        <p><strong>Q3:</strong> {parcel.q3Response == null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
+      <div className="text-sm space-y-2 border-t pt-2">
+        <div>
+          <p className="font-semibold text-xs text-muted-foreground mb-1">Survey Responses:</p>
+          
+          <div className="space-y-1">
+            <div>
+              <p className="text-sm"><strong>Q1: Border Care Permission</strong></p>
+              <p className="text-sm">{parcel.q1Response === null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
+              {parcel.q1Comment && <p className="text-xs text-muted-foreground italic">"{parcel.q1Comment}"</p>}
+            </div>
+            
+            <div>
+              <p className="text-sm"><strong>Q2: Property Assistance</strong></p>
+              <p className="text-sm">{parcel.q2Response === null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
+              {parcel.q2Comment && <p className="text-xs text-muted-foreground italic">"{parcel.q2Comment}"</p>}
+            </div>
+            
+            <div>
+              <p className="text-sm"><strong>Q3: Compost Bin Sharing</strong></p>
+              <p className="text-sm">{parcel.q3Response === null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
+              {parcel.q3Comment && <p className="text-xs text-muted-foreground italic">"{parcel.q3Comment}"</p>}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-1 border-t pt-2">
+        {isAdminMap && onToggleArea && (
+          <Button
+            size="sm"
+            variant={parcel.selected ? "destructive" : "default"}
+            className="w-full"
+            onClick={() => onToggleArea(parcel.id)}
+            data-testid={`button-toggle-area-${parcel.id}`}
+          >
+            {parcel.selected ? (
+              <>
+                <MinusCircle className="h-3 w-3 mr-1" />
+                Remove from Area
+              </>
+            ) : (
+              <>
+                <PlusCircle className="h-3 w-3 mr-1" />
+                Add to Area
+              </>
+            )}
+          </Button>
+        )}
+        
         {parcel.shortCode && parcel.codePhrase && (
           <Button
             size="sm"
@@ -432,32 +521,10 @@ function ParcelPopupContent({
             Edit Survey Response
           </Button>
         </Link>
-
-        {isAdminMap && onToggleArea && (
-          <Button
-            size="sm"
-            variant={parcel.selected ? "destructive" : "default"}
-            className="w-full"
-            onClick={() => onToggleArea(parcel.id)}
-            data-testid={`button-toggle-area-${parcel.id}`}
-          >
-            {parcel.selected ? (
-              <>
-                <MinusCircle className="h-3 w-3 mr-1" />
-                Remove from Area
-              </>
-            ) : (
-              <>
-                <PlusCircle className="h-3 w-3 mr-1" />
-                Add to Area
-              </>
-            )}
-          </Button>
-        )}
       </div>
 
       {parcel.responseDate && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground border-t pt-2">
           Response date: {new Date(parcel.responseDate).toLocaleDateString()}
         </p>
       )}
