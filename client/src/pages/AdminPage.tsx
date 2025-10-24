@@ -475,7 +475,7 @@ export default function AdminPage() {
     q2Comment: parcel.q2Comment || undefined,
     q3Response: parcel.q3Response,
     q3Comment: parcel.q3Comment || undefined,
-    responseDate: parcel.responseDate ? parcel.responseDate.toISOString() : undefined,
+    responseDate: parcel.responseDate || undefined,
     areaNames: selectedArea ? [selectedArea.name] : [],
   }));
 
