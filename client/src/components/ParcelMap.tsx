@@ -365,30 +365,23 @@ function ParcelPopupContent({
     
     return (
       <div className="p-1.5 space-y-1 min-w-[220px]" data-testid={`popup-user-${parcel.id}`}>
-        <div>
-          {parcel.address && <p className="font-semibold text-sm">{parcel.address}</p>}
-        </div>
+        {parcel.address && <p className="font-semibold text-sm">{parcel.address}</p>}
         
         {hasResponses && (
           <div className="space-y-0.5">
-            <div className="text-sm space-y-0.5 border-t pt-1">
-              <p className="font-semibold text-xs text-muted-foreground">Survey Responses:</p>
-              
+            <div className="text-sm space-y-0.5">
               <div>
-                <p className="text-sm leading-tight"><strong>Q1: Border Care Permission</strong></p>
-                <p className="text-sm leading-tight">{parcel.q1Response === null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
+                <p className="text-sm leading-tight"><strong>Q1: Border Care Permission -</strong> {parcel.q1Response === null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
                 {parcel.q1Comment && <p className="text-xs text-muted-foreground italic leading-tight">"{parcel.q1Comment}"</p>}
               </div>
               
               <div>
-                <p className="text-sm leading-tight"><strong>Q2: Property Assistance</strong></p>
-                <p className="text-sm leading-tight">{parcel.q2Response === null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
+                <p className="text-sm leading-tight"><strong>Q2: Property Assistance -</strong> {parcel.q2Response === null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
                 {parcel.q2Comment && <p className="text-xs text-muted-foreground italic leading-tight">"{parcel.q2Comment}"</p>}
               </div>
               
               <div>
-                <p className="text-sm leading-tight"><strong>Q3: Compost Bin Sharing</strong></p>
-                <p className="text-sm leading-tight">{parcel.q3Response === null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
+                <p className="text-sm leading-tight"><strong>Q3: Compost Bin Sharing -</strong> {parcel.q3Response === null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
                 {parcel.q3Comment && <p className="text-xs text-muted-foreground italic leading-tight">"{parcel.q3Comment}"</p>}
               </div>
             </div>
@@ -448,28 +441,21 @@ function ParcelPopupContent({
         {statusLabels[parcel.status]}
       </Badge>
 
-      <div className="text-sm space-y-0.5 border-t pt-1">
-        <div>
-          <p className="font-semibold text-xs text-muted-foreground mb-0.5 leading-tight">Survey Responses:</p>
+      <div className="text-sm space-y-0.5">
+        <div className="space-y-0.5">
+          <div>
+            <p className="text-sm leading-tight"><strong>Q1: Border Care Permission -</strong> {parcel.q1Response === null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
+            {parcel.q1Comment && <p className="text-xs text-muted-foreground italic leading-tight">"{parcel.q1Comment}"</p>}
+          </div>
           
-          <div className="space-y-0.5">
-            <div>
-              <p className="text-sm leading-tight"><strong>Q1: Border Care Permission</strong></p>
-              <p className="text-sm leading-tight">{parcel.q1Response === null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
-              {parcel.q1Comment && <p className="text-xs text-muted-foreground italic leading-tight">"{parcel.q1Comment}"</p>}
-            </div>
-            
-            <div>
-              <p className="text-sm leading-tight"><strong>Q2: Property Assistance</strong></p>
-              <p className="text-sm leading-tight">{parcel.q2Response === null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
-              {parcel.q2Comment && <p className="text-xs text-muted-foreground italic leading-tight">"{parcel.q2Comment}"</p>}
-            </div>
-            
-            <div>
-              <p className="text-sm leading-tight"><strong>Q3: Compost Bin Sharing</strong></p>
-              <p className="text-sm leading-tight">{parcel.q3Response === null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
-              {parcel.q3Comment && <p className="text-xs text-muted-foreground italic leading-tight">"{parcel.q3Comment}"</p>}
-            </div>
+          <div>
+            <p className="text-sm leading-tight"><strong>Q2: Property Assistance -</strong> {parcel.q2Response === null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
+            {parcel.q2Comment && <p className="text-xs text-muted-foreground italic leading-tight">"{parcel.q2Comment}"</p>}
+          </div>
+          
+          <div>
+            <p className="text-sm leading-tight"><strong>Q3: Compost Bin Sharing -</strong> {parcel.q3Response === null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
+            {parcel.q3Comment && <p className="text-xs text-muted-foreground italic leading-tight">"{parcel.q3Comment}"</p>}
           </div>
         </div>
       </div>
