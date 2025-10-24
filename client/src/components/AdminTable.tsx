@@ -1,14 +1,12 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Copy, Edit, RefreshCw, Link, MapPin } from "lucide-react";
+import { Copy, Edit, RefreshCw, Link as LinkIcon, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
+import { Link } from "wouter";
 
 export interface ParcelAdmin {
   id: string;
@@ -29,8 +27,6 @@ interface AdminTableProps {
 
 export default function AdminTable({ parcels, onLocateParcel }: AdminTableProps) {
   const { toast } = useToast();
-  const [editingParcel, setEditingParcel] = useState<ParcelAdmin | null>(null);
-  const [editAddress, setEditAddress] = useState('');
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
   const copyToClipboard = (text: string) => {
@@ -51,34 +47,15 @@ export default function AdminTable({ parcels, onLocateParcel }: AdminTableProps)
     });
   };
 
-  const updateAddressMutation = useMutation({
-    mutationFn: async ({ id, address }: { id: string; address: string }) => {
-      return await apiRequest("PATCH", `/api/admin/parcels/${id}`, { address });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/parcels"] });
-      setEditingParcel(null);
-      toast({
-        title: "Address updated",
-        description: "Parcel address has been updated successfully",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Update failed",
-        description: error.message || "Failed to update address",
-        variant: "destructive",
-      });
-    },
-  });
-
   const regeneratePhraseMutation = useMutation({
     mutationFn: async (id: string) => {
       setRegeneratingId(id);
       return await apiRequest("POST", `/api/admin/parcels/${id}/regenerate-phrase`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/parcels"] });
+      // Invalidate all admin area queries to refresh the table
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/areas"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/areas"] });
       setRegeneratingId(null);
       toast({
         title: "Nature phrase regenerated",
@@ -94,17 +71,6 @@ export default function AdminTable({ parcels, onLocateParcel }: AdminTableProps)
       });
     },
   });
-
-  const handleEditClick = (parcel: ParcelAdmin) => {
-    setEditingParcel(parcel);
-    setEditAddress(parcel.address || '');
-  };
-
-  const handleSaveAddress = () => {
-    if (editingParcel) {
-      updateAddressMutation.mutate({ id: editingParcel.id, address: editAddress });
-    }
-  };
 
   const statusLabels = {
     'none': 'No Response',
@@ -192,17 +158,18 @@ export default function AdminTable({ parcels, onLocateParcel }: AdminTableProps)
                       data-testid={`button-copy-login-${parcel.id}`}
                       title="Copy login link"
                     >
-                      <Link className="h-4 w-4" />
+                      <LinkIcon className="h-4 w-4" />
                     </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleEditClick(parcel)}
-                      data-testid={`button-edit-${parcel.id}`}
-                      title="Edit address"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                    <Link href={`/survey?parcelId=${encodeURIComponent(parcel.id)}`}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        data-testid={`button-edit-${parcel.id}`}
+                        title="View/edit survey"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </Link>
                     <Button
                       size="icon"
                       variant="ghost"
@@ -220,46 +187,6 @@ export default function AdminTable({ parcels, onLocateParcel }: AdminTableProps)
           </TableBody>
         </Table>
       </div>
-
-      <Dialog open={!!editingParcel} onOpenChange={(open) => !open && setEditingParcel(null)}>
-        <DialogContent data-testid="dialog-edit-address">
-          <DialogHeader>
-            <DialogTitle>Edit Parcel Address</DialogTitle>
-            <DialogDescription>
-              Update the street address for parcel {editingParcel?.id}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="edit-address">Street Address</Label>
-              <Input
-                id="edit-address"
-                value={editAddress}
-                onChange={(e) => setEditAddress(e.target.value)}
-                placeholder="e.g., 123 Oak Street"
-                className="mt-2"
-                data-testid="input-edit-address"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setEditingParcel(null)}
-              data-testid="button-cancel-edit"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveAddress}
-              disabled={updateAddressMutation.isPending}
-              data-testid="button-save-address"
-            >
-              {updateAddressMutation.isPending ? 'Saving...' : 'Save'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
