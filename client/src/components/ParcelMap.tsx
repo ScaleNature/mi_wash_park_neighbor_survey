@@ -2,8 +2,9 @@ import { useRef, useEffect, forwardRef, useImperativeHandle, useState } from 're
 import { MapContainer, TileLayer, Polygon, Popup, Marker, useMap, useMapEvents, WMSTileLayer } from 'react-leaflet';
 import { LatLngExpression, Map as LeafletMap, divIcon, LatLngBounds, DivIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Trash2, ExternalLink, Leaf } from 'lucide-react';
+import { Trash2, ExternalLink, Leaf, Copy, Edit, PlusCircle, MinusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'wouter';
@@ -12,12 +13,15 @@ export interface Parcel {
   id: string;
   coordinates: LatLngExpression[][];
   address?: string;
+  shortCode?: string | null;
+  codePhrase?: string;
   status: 'none' | 'light-green' | 'forest-green';
   hasCompost: boolean;
   selected?: boolean;
   q1Response?: boolean | null;
   q2Response?: boolean | null;
   q3Response?: boolean | null;
+  responseDate?: string | null;
 }
 
 interface ParcelMapProps {
@@ -25,7 +29,9 @@ interface ParcelMapProps {
   center?: LatLngExpression;
   zoom?: number;
   onParcelClick?: (parcelId: string) => void;
+  onToggleArea?: (parcelId: string) => void;
   adminMode?: boolean;
+  isAdminMap?: boolean;
   fitBounds?: boolean;
 }
 
@@ -313,7 +319,153 @@ function DynamicMarkers({
   );
 }
 
-const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, adminMode = false, fitBounds = false }, ref) => {
+// Component to render popup content based on context
+function ParcelPopupContent({ 
+  parcel, 
+  adminMode, 
+  isAdminMap,
+  onToggleArea 
+}: { 
+  parcel: Parcel, 
+  adminMode: boolean,
+  isAdminMap: boolean,
+  onToggleArea?: (parcelId: string) => void
+}) {
+  const { toast } = useToast();
+
+  const copySurveyLink = () => {
+    const baseUrl = window.location.origin;
+    const loginUrl = `${baseUrl}/survey?code=${encodeURIComponent(parcel.shortCode || '')}&phrase=${encodeURIComponent(parcel.codePhrase || '')}`;
+    navigator.clipboard.writeText(loginUrl);
+    toast({
+      title: "Survey link copied!",
+      description: "Share this link with the property owner",
+    });
+  };
+
+  const statusLabels = {
+    'none': 'No Response',
+    'light-green': 'Q1 Support',
+    'forest-green': 'Full Support',
+  };
+
+  const statusColors = {
+    'none': 'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400',
+    'light-green': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+    'forest-green': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
+  };
+
+  // Standard user mode (not admin)
+  if (!adminMode) {
+    return (
+      <div className="p-2 space-y-2" data-testid={`popup-user-${parcel.id}`}>
+        <div>
+          {parcel.address && <p className="font-semibold">{parcel.address}</p>}
+        </div>
+        {parcel.responseDate && (
+          <p className="text-xs text-muted-foreground">
+            Survey completed on {new Date(parcel.responseDate).toLocaleDateString()}
+          </p>
+        )}
+        <Link href="/survey">
+          <Button 
+            size="sm" 
+            variant="default" 
+            className="w-full"
+            data-testid={`button-participate-${parcel.id}`}
+          >
+            <ExternalLink className="h-3 w-3 mr-1" />
+            Participate in Survey
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  // Admin mode - main map or admin map
+  return (
+    <div className="p-2 space-y-2 min-w-[200px]" data-testid={`popup-admin-${parcel.id}`}>
+      <div>
+        {parcel.address && <p className="font-semibold">{parcel.address}</p>}
+        <p className="text-xs font-mono text-muted-foreground">
+          ID: {parcel.id}
+        </p>
+        {parcel.shortCode && (
+          <p className="text-xs text-muted-foreground">
+            Code: {parcel.shortCode}
+          </p>
+        )}
+      </div>
+      
+      <Badge variant="outline" className={statusColors[parcel.status]}>
+        {statusLabels[parcel.status]}
+      </Badge>
+
+      <div className="text-sm space-y-1">
+        <p><strong>Q1:</strong> {parcel.q1Response == null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
+        <p><strong>Q2:</strong> {parcel.q2Response == null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
+        <p><strong>Q3:</strong> {parcel.q3Response == null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
+      </div>
+
+      <div className="space-y-1">
+        {parcel.shortCode && parcel.codePhrase && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full"
+            onClick={copySurveyLink}
+            data-testid={`button-copy-link-${parcel.id}`}
+          >
+            <Copy className="h-3 w-3 mr-1" />
+            Copy Survey Link
+          </Button>
+        )}
+        
+        <Link href={`/survey?parcelId=${encodeURIComponent(parcel.id)}`}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full"
+            data-testid={`button-edit-survey-${parcel.id}`}
+          >
+            <Edit className="h-3 w-3 mr-1" />
+            Edit Survey Response
+          </Button>
+        </Link>
+
+        {isAdminMap && onToggleArea && (
+          <Button
+            size="sm"
+            variant={parcel.selected ? "destructive" : "default"}
+            className="w-full"
+            onClick={() => onToggleArea(parcel.id)}
+            data-testid={`button-toggle-area-${parcel.id}`}
+          >
+            {parcel.selected ? (
+              <>
+                <MinusCircle className="h-3 w-3 mr-1" />
+                Remove from Area
+              </>
+            ) : (
+              <>
+                <PlusCircle className="h-3 w-3 mr-1" />
+                Add to Area
+              </>
+            )}
+          </Button>
+        )}
+      </div>
+
+      {parcel.responseDate && (
+        <p className="text-xs text-muted-foreground">
+          Response date: {new Date(parcel.responseDate).toLocaleDateString()}
+        </p>
+      )}
+    </div>
+  );
+}
+
+const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, onToggleArea, adminMode = false, isAdminMap = false, fitBounds = false }, ref) => {
   const mapRef = useRef<LeafletMap>(null);
 
   useImperativeHandle(ref, () => ({
@@ -418,51 +570,22 @@ const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = 
                 dashArray: adminMode && !isSelected ? '5, 5' : undefined,
                 className: onParcelClick ? 'cursor-pointer' : ''
               }}
-              eventHandlers={onParcelClick ? {
+              eventHandlers={isAdminMap && onParcelClick ? {
                 click: (e) => {
                   e.originalEvent.stopPropagation();
                   onParcelClick(parcel.id);
                 }
               } : undefined}
             >
-            {!adminMode && !onParcelClick && (
               <Popup>
-                <div className="p-2 space-y-2" data-testid={`popup-parcel-${parcel.id}`}>
-                  <div>
-                    {parcel.address && <p className="font-semibold">{parcel.address}</p>}
-                    <p className="text-xs font-mono text-muted-foreground" data-testid={`text-parcel-id-${parcel.id}`}>
-                      ID: {parcel.id}
-                    </p>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {parcel.q1Response == null && parcel.q2Response == null && parcel.q3Response == null && (
-                      <div>No Response</div>
-                    )}
-                    {parcel.q1Response === true && (
-                      <div>Supports Park Border Care</div>
-                    )}
-                    {parcel.q2Response === true && (
-                      <div>Appreciates Parcel Help</div>
-                    )}
-                    {parcel.q3Response === true && (
-                      <div>Compost Bin Usage Allowed</div>
-                    )}
-                  </div>
-                  <Link href="/survey">
-                    <Button 
-                      size="sm" 
-                      variant="default" 
-                      className="w-full mt-1"
-                      data-testid={`button-survey-link-${parcel.id}`}
-                    >
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      Go to Survey
-                    </Button>
-                  </Link>
-                </div>
+                <ParcelPopupContent 
+                  parcel={parcel}
+                  adminMode={adminMode}
+                  isAdminMap={isAdminMap}
+                  onToggleArea={onToggleArea}
+                />
               </Popup>
-            )}
-          </Polygon>
+            </Polygon>
           );
         }
         )}
