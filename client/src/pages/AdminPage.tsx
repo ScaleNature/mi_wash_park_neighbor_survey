@@ -464,12 +464,19 @@ export default function AdminPage() {
     id: parcel.id,
     coordinates: (parcel.geometry as any)?.coordinates || [],
     address: parcel.address || undefined,
+    shortCode: parcel.shortCode || undefined,
+    codePhrase: parcel.codePhrase || undefined,
     status: 'none' as 'none' | 'light-green' | 'forest-green',
     hasCompost: false,
     selected: selectedParcelIds.includes(parcel.id),
     q1Response: parcel.q1Response,
+    q1Comment: parcel.q1Comment || undefined,
     q2Response: parcel.q2Response,
+    q2Comment: parcel.q2Comment || undefined,
     q3Response: parcel.q3Response,
+    q3Comment: parcel.q3Comment || undefined,
+    responseDate: parcel.responseDate || undefined,
+    areaNames: selectedArea ? [selectedArea.name] : [],
   }));
 
   // Convert full Parcels to ParcelAdmin for the table

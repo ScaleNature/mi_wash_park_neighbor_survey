@@ -17,8 +17,11 @@ interface ParcelData {
   shortCode?: string | null;
   codePhrase?: string | null;
   q1Response?: boolean | null;
+  q1Comment?: string | null;
   q2Response?: boolean | null;
+  q2Comment?: string | null;
   q3Response?: boolean | null;
+  q3Comment?: string | null;
   responseDate?: string | null;
 }
 
@@ -69,6 +72,15 @@ export default function MapPage() {
   ];
   const zoom = currentArea?.defaultZoom ?? 16;
 
+  // Create a map of parcelId to area names
+  const parcelToAreasMap = new Map<string, string[]>();
+  if (areas) {
+    areas.forEach(area => {
+      // We'll need to get parcel IDs for each area from the backend
+      // For now, we can only show area names for admin users who can see the area assignments
+    });
+  }
+
   const parcels: Parcel[] = parcelsData?.map(p => ({
     id: p.id,
     coordinates: p.geometry.coordinates as LatLngExpression[][],
@@ -78,9 +90,13 @@ export default function MapPage() {
     status: calculateStatus(p.q1Response, p.q2Response),
     hasCompost: p.q3Response || false,
     q1Response: p.q1Response,
+    q1Comment: p.q1Comment || undefined,
     q2Response: p.q2Response,
+    q2Comment: p.q2Comment || undefined,
     q3Response: p.q3Response,
+    q3Comment: p.q3Comment || undefined,
     responseDate: p.responseDate || undefined,
+    areaNames: parcelToAreasMap.get(p.id) || [],
   })) || [];
 
   const handleParcelClick = (parcelId: string) => {
