@@ -159,9 +159,9 @@ function DynamicMarkers({
   });
   
   // Icon physical sizes in meters
-  const ICON_SIZE_METERS = 3; // ~10 feet
-  const TEXT_HEIGHT_METERS = 1.5; // ~5 feet
-  const VERTICAL_OFFSET_METERS = 3; // ~10 feet separation
+  const ICON_SIZE_METERS = 6; // ~20 feet
+  const TEXT_HEIGHT_METERS = 3; // ~10 feet
+  const VERTICAL_OFFSET_METERS = 6; // ~20 feet separation
   
   // Calculate pixel sizes
   const iconSizePixels = metersToPixels(ICON_SIZE_METERS, map);
