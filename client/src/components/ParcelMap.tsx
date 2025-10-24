@@ -217,23 +217,23 @@ function DynamicMarkers({
             icon={leafIcon}
           >
             <Popup>
-              <div className="p-2 space-y-2" data-testid={`popup-admin-leaf-${parcel.id}`}>
+              <div className="p-1.5 space-y-1" data-testid={`popup-admin-leaf-${parcel.id}`}>
                 <div>
-                  {parcel.address && <p className="font-semibold">{parcel.address}</p>}
-                  <p className="text-xs font-mono text-muted-foreground">
+                  {parcel.address && <p className="font-semibold text-sm leading-tight">{parcel.address}</p>}
+                  <p className="text-xs font-mono text-muted-foreground leading-tight">
                     ID: {parcel.id}
                   </p>
                 </div>
-                <div className="text-sm space-y-1">
-                  <p><strong>Q1 (Removal Permission):</strong> {parcel.q1Response == null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
-                  <p><strong>Q2 (Assistance Interest):</strong> {parcel.q2Response == null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
-                  <p><strong>Q3 (Compost Sharing):</strong> {parcel.q3Response == null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
+                <div className="text-sm space-y-0.5">
+                  <p className="leading-tight"><strong>Q1 (Removal Permission):</strong> {parcel.q1Response == null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
+                  <p className="leading-tight"><strong>Q2 (Assistance Interest):</strong> {parcel.q2Response == null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
+                  <p className="leading-tight"><strong>Q3 (Compost Sharing):</strong> {parcel.q3Response == null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
                 </div>
                 <Link href={`/survey?parcelId=${encodeURIComponent(parcel.id)}`}>
                   <Button 
                     size="sm" 
                     variant="default" 
-                    className="w-full mt-1"
+                    className="w-full mt-0.5"
                     data-testid={`button-edit-survey-${parcel.id}`}
                   >
                     <ExternalLink className="h-3 w-3 mr-1" />
@@ -364,37 +364,37 @@ function ParcelPopupContent({
     const hasResponses = parcel.q1Response !== null || parcel.q2Response !== null || parcel.q3Response !== null;
     
     return (
-      <div className="p-2 space-y-2 min-w-[220px]" data-testid={`popup-user-${parcel.id}`}>
+      <div className="p-1.5 space-y-1 min-w-[220px]" data-testid={`popup-user-${parcel.id}`}>
         <div>
-          {parcel.address && <p className="font-semibold">{parcel.address}</p>}
+          {parcel.address && <p className="font-semibold text-sm">{parcel.address}</p>}
         </div>
         
         {hasResponses && (
-          <div className="space-y-2">
-            <div className="text-sm space-y-1 border-t pt-2">
+          <div className="space-y-0.5">
+            <div className="text-sm space-y-0.5 border-t pt-1">
               <p className="font-semibold text-xs text-muted-foreground">Survey Responses:</p>
               
               <div>
-                <p className="text-sm"><strong>Q1: Border Care Permission</strong></p>
-                <p className="text-sm">{parcel.q1Response === null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
-                {parcel.q1Comment && <p className="text-xs text-muted-foreground italic">"{parcel.q1Comment}"</p>}
+                <p className="text-sm leading-tight"><strong>Q1: Border Care Permission</strong></p>
+                <p className="text-sm leading-tight">{parcel.q1Response === null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
+                {parcel.q1Comment && <p className="text-xs text-muted-foreground italic leading-tight">"{parcel.q1Comment}"</p>}
               </div>
               
               <div>
-                <p className="text-sm"><strong>Q2: Property Assistance</strong></p>
-                <p className="text-sm">{parcel.q2Response === null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
-                {parcel.q2Comment && <p className="text-xs text-muted-foreground italic">"{parcel.q2Comment}"</p>}
+                <p className="text-sm leading-tight"><strong>Q2: Property Assistance</strong></p>
+                <p className="text-sm leading-tight">{parcel.q2Response === null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
+                {parcel.q2Comment && <p className="text-xs text-muted-foreground italic leading-tight">"{parcel.q2Comment}"</p>}
               </div>
               
               <div>
-                <p className="text-sm"><strong>Q3: Compost Bin Sharing</strong></p>
-                <p className="text-sm">{parcel.q3Response === null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
-                {parcel.q3Comment && <p className="text-xs text-muted-foreground italic">"{parcel.q3Comment}"</p>}
+                <p className="text-sm leading-tight"><strong>Q3: Compost Bin Sharing</strong></p>
+                <p className="text-sm leading-tight">{parcel.q3Response === null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
+                {parcel.q3Comment && <p className="text-xs text-muted-foreground italic leading-tight">"{parcel.q3Comment}"</p>}
               </div>
             </div>
             
             {parcel.responseDate && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground leading-tight">
                 Completed: {new Date(parcel.responseDate).toLocaleDateString()}
               </p>
             )}
@@ -405,7 +405,7 @@ function ParcelPopupContent({
           <Button 
             size="sm" 
             variant="default" 
-            className="w-full"
+            className="w-full mt-1"
             data-testid={`button-participate-${parcel.id}`}
           >
             <ExternalLink className="h-3 w-3 mr-1" />
@@ -418,22 +418,22 @@ function ParcelPopupContent({
 
   // Admin mode - main map or admin map
   return (
-    <div className="p-2 space-y-2 min-w-[250px]" data-testid={`popup-admin-${parcel.id}`}>
+    <div className="p-1.5 space-y-1 min-w-[250px]" data-testid={`popup-admin-${parcel.id}`}>
       <div>
-        {parcel.address && <p className="font-semibold">{parcel.address}</p>}
-        <p className="text-xs font-mono text-muted-foreground">
+        {parcel.address && <p className="font-semibold text-sm leading-tight">{parcel.address}</p>}
+        <p className="text-xs font-mono text-muted-foreground leading-tight">
           ID: {parcel.id}
         </p>
         {parcel.shortCode && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground leading-tight">
             Code: {parcel.shortCode}
           </p>
         )}
       </div>
       
       {parcel.areaNames && parcel.areaNames.length > 0 && (
-        <div className="border-t pt-2">
-          <p className="text-xs font-semibold text-muted-foreground mb-1">Area Assignment:</p>
+        <div className="border-t pt-1">
+          <p className="text-xs font-semibold text-muted-foreground mb-0.5 leading-tight">Area Assignment:</p>
           <div className="flex flex-wrap gap-1">
             {parcel.areaNames.map((areaName, idx) => (
               <Badge key={idx} variant="secondary" className="text-xs">
@@ -448,33 +448,33 @@ function ParcelPopupContent({
         {statusLabels[parcel.status]}
       </Badge>
 
-      <div className="text-sm space-y-2 border-t pt-2">
+      <div className="text-sm space-y-0.5 border-t pt-1">
         <div>
-          <p className="font-semibold text-xs text-muted-foreground mb-1">Survey Responses:</p>
+          <p className="font-semibold text-xs text-muted-foreground mb-0.5 leading-tight">Survey Responses:</p>
           
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <div>
-              <p className="text-sm"><strong>Q1: Border Care Permission</strong></p>
-              <p className="text-sm">{parcel.q1Response === null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
-              {parcel.q1Comment && <p className="text-xs text-muted-foreground italic">"{parcel.q1Comment}"</p>}
+              <p className="text-sm leading-tight"><strong>Q1: Border Care Permission</strong></p>
+              <p className="text-sm leading-tight">{parcel.q1Response === null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
+              {parcel.q1Comment && <p className="text-xs text-muted-foreground italic leading-tight">"{parcel.q1Comment}"</p>}
             </div>
             
             <div>
-              <p className="text-sm"><strong>Q2: Property Assistance</strong></p>
-              <p className="text-sm">{parcel.q2Response === null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
-              {parcel.q2Comment && <p className="text-xs text-muted-foreground italic">"{parcel.q2Comment}"</p>}
+              <p className="text-sm leading-tight"><strong>Q2: Property Assistance</strong></p>
+              <p className="text-sm leading-tight">{parcel.q2Response === null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
+              {parcel.q2Comment && <p className="text-xs text-muted-foreground italic leading-tight">"{parcel.q2Comment}"</p>}
             </div>
             
             <div>
-              <p className="text-sm"><strong>Q3: Compost Bin Sharing</strong></p>
-              <p className="text-sm">{parcel.q3Response === null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
-              {parcel.q3Comment && <p className="text-xs text-muted-foreground italic">"{parcel.q3Comment}"</p>}
+              <p className="text-sm leading-tight"><strong>Q3: Compost Bin Sharing</strong></p>
+              <p className="text-sm leading-tight">{parcel.q3Response === null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
+              {parcel.q3Comment && <p className="text-xs text-muted-foreground italic leading-tight">"{parcel.q3Comment}"</p>}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="space-y-1 border-t pt-2">
+      <div className="space-y-1 border-t pt-1">
         {isAdminMap && onToggleArea && (
           <Button
             size="sm"
@@ -524,7 +524,7 @@ function ParcelPopupContent({
       </div>
 
       {parcel.responseDate && (
-        <p className="text-xs text-muted-foreground border-t pt-2">
+        <p className="text-xs text-muted-foreground border-t pt-1 leading-tight">
           Response date: {new Date(parcel.responseDate).toLocaleDateString()}
         </p>
       )}
