@@ -53,7 +53,6 @@ export default function MapPage() {
   });
 
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>("all");
-  const [savedMapPosition, setSavedMapPosition] = useState<{center: [number, number], zoom: number} | null>(null);
 
   const { data: parcelsData, isLoading } = useQuery<ParcelData[]>({
     queryKey: ["/api/survey/parcels"],
@@ -67,26 +66,30 @@ export default function MapPage() {
         ? areas?.find(a => a.id === selectedAreaId)
         : areas?.[0]);
 
-  // Load saved position from localStorage when switching to "Show All Areas"
-  useEffect(() => {
-    if (showAllAreas) {
-      try {
-        const saved = localStorage.getItem('mapPosition');
-        setSavedMapPosition(saved ? JSON.parse(saved) : null);
-      } catch {
-        setSavedMapPosition(null);
-      }
+  // Load saved position from localStorage on initial mount
+  const [savedMapPosition] = useState<{center: [number, number], zoom: number} | null>(() => {
+    try {
+      const saved = localStorage.getItem('mapPosition');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
     }
-  }, [showAllAreas]);
+  });
 
-  // Use saved position if available and showing all areas, otherwise use area defaults
-  const center: [number, number] = showAllAreas && savedMapPosition
+  // Use saved position if available, otherwise use area defaults
+  const center: [number, number] = savedMapPosition
     ? savedMapPosition.center
     : [currentArea?.centerLat ?? 42.2808, currentArea?.centerLng ?? -83.7430];
   
-  const zoom = showAllAreas && savedMapPosition
+  const zoom = savedMapPosition
     ? savedMapPosition.zoom
     : (currentArea?.defaultZoom ?? 16);
+
+  // Clear saved position and fly to area defaults when user selects a different area
+  const handleAreaChange = (value: string) => {
+    setSelectedAreaId(value);
+    localStorage.removeItem('mapPosition');
+  };
 
   // Create a map of parcelId to area names
   const parcelToAreasMap = new Map<string, string[]>();
@@ -133,7 +136,7 @@ export default function MapPage() {
         <div className="absolute top-4 right-4 z-[1000]">
           <Select 
             value={selectedAreaId || areas[0]?.id} 
-            onValueChange={setSelectedAreaId}
+            onValueChange={handleAreaChange}
           >
             <SelectTrigger 
               className="w-64 bg-card shadow-md"
@@ -166,7 +169,6 @@ export default function MapPage() {
         center={center} 
         zoom={zoom}
         fitBounds={showAllAreas}
-        savePosition={showAllAreas}
         adminMode={session?.isAdmin || false}
         onParcelClick={session?.isAdmin ? handleParcelClick : undefined}
       />
