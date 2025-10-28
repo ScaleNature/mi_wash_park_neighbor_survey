@@ -42,7 +42,6 @@ function calculateStatus(q1?: boolean | null, q2?: boolean | null): ParcelStatus
 
 export default function MapPage() {
   const [, setLocation] = useLocation();
-  const mapRef = useRef<any>(null);
   
   // Check if user is logged in as admin
   const { data: session } = useQuery<{ isAdmin: boolean }>({
@@ -56,14 +55,14 @@ export default function MapPage() {
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>("all");
   
   // Load saved map position from localStorage
-  const [savedMapPosition, setSavedMapPosition] = useState<{center: [number, number], zoom: number} | null>(() => {
+  const savedMapPosition = (() => {
     try {
       const saved = localStorage.getItem('mapPosition');
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
     }
-  });
+  })();
 
   const { data: parcelsData, isLoading } = useQuery<ParcelData[]>({
     queryKey: ["/api/survey/parcels"],
@@ -85,33 +84,6 @@ export default function MapPage() {
   const zoom = showAllAreas && savedMapPosition
     ? savedMapPosition.zoom
     : (currentArea?.defaultZoom ?? 16);
-  
-  // Save map position to localStorage when user navigates away
-  useEffect(() => {
-    const saveMapPosition = () => {
-      if (mapRef.current && showAllAreas) {
-        const mapInstance = mapRef.current;
-        const currentCenter = mapInstance.getCenter?.();
-        const currentZoom = mapInstance.getZoom?.();
-        
-        if (currentCenter && currentZoom !== undefined) {
-          const position = {
-            center: [currentCenter.lat, currentCenter.lng] as [number, number],
-            zoom: currentZoom
-          };
-          localStorage.setItem('mapPosition', JSON.stringify(position));
-        }
-      }
-    };
-    
-    // Save on page unload
-    window.addEventListener('beforeunload', saveMapPosition);
-    
-    return () => {
-      saveMapPosition(); // Save when component unmounts
-      window.removeEventListener('beforeunload', saveMapPosition);
-    };
-  }, [showAllAreas]);
 
   // Create a map of parcelId to area names
   const parcelToAreasMap = new Map<string, string[]>();
@@ -187,11 +159,11 @@ export default function MapPage() {
         </div>
       )}
       <ParcelMap 
-        ref={mapRef}
         parcels={parcels} 
         center={center} 
         zoom={zoom}
         fitBounds={showAllAreas}
+        savePosition={showAllAreas}
         adminMode={session?.isAdmin || false}
         onParcelClick={session?.isAdmin ? handleParcelClick : undefined}
       />
