@@ -1,7 +1,7 @@
 import ParcelMap, { Parcel } from "@/components/ParcelMap";
 import { useQuery } from "@tanstack/react-query";
 import { LatLngExpression } from 'leaflet';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocation } from 'wouter';
 
@@ -42,6 +42,7 @@ function calculateStatus(q1?: boolean | null, q2?: boolean | null): ParcelStatus
 
 export default function MapPage() {
   const [, setLocation] = useLocation();
+  const mapRef = useRef<any>(null);
   
   // Check if user is logged in as admin
   const { data: session } = useQuery<{ isAdmin: boolean }>({
@@ -53,6 +54,16 @@ export default function MapPage() {
   });
 
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>("all");
+  
+  // Load saved map position from localStorage
+  const [savedMapPosition, setSavedMapPosition] = useState<{center: [number, number], zoom: number} | null>(() => {
+    try {
+      const saved = localStorage.getItem('mapPosition');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
   const { data: parcelsData, isLoading } = useQuery<ParcelData[]>({
     queryKey: ["/api/survey/parcels"],
@@ -66,11 +77,41 @@ export default function MapPage() {
         ? areas?.find(a => a.id === selectedAreaId)
         : areas?.[0]);
 
-  const center: [number, number] = [
-    currentArea?.centerLat ?? 42.2808,
-    currentArea?.centerLng ?? -83.7430
-  ];
-  const zoom = currentArea?.defaultZoom ?? 16;
+  // Use saved position if available and showing all areas, otherwise use area defaults
+  const center: [number, number] = showAllAreas && savedMapPosition
+    ? savedMapPosition.center
+    : [currentArea?.centerLat ?? 42.2808, currentArea?.centerLng ?? -83.7430];
+  
+  const zoom = showAllAreas && savedMapPosition
+    ? savedMapPosition.zoom
+    : (currentArea?.defaultZoom ?? 16);
+  
+  // Save map position to localStorage when user navigates away
+  useEffect(() => {
+    const saveMapPosition = () => {
+      if (mapRef.current && showAllAreas) {
+        const mapInstance = mapRef.current;
+        const currentCenter = mapInstance.getCenter?.();
+        const currentZoom = mapInstance.getZoom?.();
+        
+        if (currentCenter && currentZoom !== undefined) {
+          const position = {
+            center: [currentCenter.lat, currentCenter.lng] as [number, number],
+            zoom: currentZoom
+          };
+          localStorage.setItem('mapPosition', JSON.stringify(position));
+        }
+      }
+    };
+    
+    // Save on page unload
+    window.addEventListener('beforeunload', saveMapPosition);
+    
+    return () => {
+      saveMapPosition(); // Save when component unmounts
+      window.removeEventListener('beforeunload', saveMapPosition);
+    };
+  }, [showAllAreas]);
 
   // Create a map of parcelId to area names
   const parcelToAreasMap = new Map<string, string[]>();
@@ -146,6 +187,7 @@ export default function MapPage() {
         </div>
       )}
       <ParcelMap 
+        ref={mapRef}
         parcels={parcels} 
         center={center} 
         zoom={zoom}

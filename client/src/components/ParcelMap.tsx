@@ -42,6 +42,8 @@ interface ParcelMapProps {
 export interface ParcelMapRef {
   flyTo: (center: LatLngExpression, zoom: number) => void;
   fitBounds: (bounds: [[number, number], [number, number]], padding?: number) => void;
+  getCenter: () => { lat: number; lng: number } | undefined;
+  getZoom: () => number | undefined;
 }
 
 // Utility: Calculate meters per pixel at given zoom level and latitude
@@ -515,7 +517,9 @@ const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = 
       if (mapRef.current) {
         mapRef.current.fitBounds(bounds, { padding: [padding, padding], duration: 0.5 });
       }
-    }
+    },
+    getCenter: () => mapRef.current?.getCenter(),
+    getZoom: () => mapRef.current?.getZoom()
   }));
 
   const getParcelColor = (status: string, adminMode: boolean = false, isSelected: boolean = false) => {
