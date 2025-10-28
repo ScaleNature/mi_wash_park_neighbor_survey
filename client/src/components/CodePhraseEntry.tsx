@@ -82,7 +82,7 @@ export default function CodePhraseEntry({ onValidCode }: CodePhraseEntryProps) {
             <Label htmlFor="code-phrase">Nature Phrase</Label>
             <Input
               id="code-phrase"
-              type="password"
+              type="text"
               value={codePhrase}
               onChange={(e) => setCodePhrase(e.target.value)}
               placeholder="Enter your unique nature phrase"
