@@ -150,6 +150,7 @@ export default function MapPage() {
         center={center} 
         zoom={zoom}
         fitBounds={showAllAreas}
+        adminMode={session?.isAdmin || false}
         onParcelClick={session?.isAdmin ? handleParcelClick : undefined}
       />
     </div>
