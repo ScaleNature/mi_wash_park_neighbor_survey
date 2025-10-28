@@ -370,13 +370,10 @@ function ParcelPopupContent({
         {hasResponses && (
           <div className="text-sm">
             <p className="leading-none mb-0.5"><strong>Q1: Border Care Permission -</strong> {parcel.q1Response === null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
-            {parcel.q1Comment && <p className="text-xs text-muted-foreground italic leading-none mb-0.5">"{parcel.q1Comment}"</p>}
             
             <p className="leading-none mb-0.5"><strong>Q2: Property Assistance -</strong> {parcel.q2Response === null ? 'No response' : parcel.q2Response ? 'Yes' : 'No'}</p>
-            {parcel.q2Comment && <p className="text-xs text-muted-foreground italic leading-none mb-0.5">"{parcel.q2Comment}"</p>}
             
             <p className="leading-none mb-0.5"><strong>Q3: Compost Bin Sharing -</strong> {parcel.q3Response === null ? 'No response' : parcel.q3Response ? 'Yes' : 'No'}</p>
-            {parcel.q3Comment && <p className="text-xs text-muted-foreground italic leading-none mb-0.5">"{parcel.q3Comment}"</p>}
             
             {parcel.responseDate && (
               <p className="text-xs text-muted-foreground leading-none mt-1">
@@ -429,9 +426,12 @@ function ParcelPopupContent({
         </div>
       )}
       
-      <Badge variant="outline" className={`${statusColors[parcel.status]} mb-1`}>
-        {statusLabels[parcel.status]}
-      </Badge>
+      {/* Only show status badge if not "No Response" in admin map context */}
+      {!(isAdminMap && parcel.status === 'none') && (
+        <Badge variant="outline" className={`${statusColors[parcel.status]} mb-1`}>
+          {statusLabels[parcel.status]}
+        </Badge>
+      )}
 
       <div className="text-sm mb-1">
         <p className="leading-none mb-0.5"><strong>Q1: Border Care Permission -</strong> {parcel.q1Response === null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
