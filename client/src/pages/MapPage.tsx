@@ -96,9 +96,26 @@ export default function MapPage() {
   useEffect(() => {
     if (!mapRef.current) return;
     
-    if (showAllAreas) {
-      // When "Show All Areas" is selected, fit bounds to all parcels
-      // The fitBounds prop will handle this
+    if (showAllAreas && parcels.length > 0) {
+      // Calculate bounds from all parcels
+      let minLat = Infinity, maxLat = -Infinity;
+      let minLng = Infinity, maxLng = -Infinity;
+      
+      parcels.forEach(parcel => {
+        parcel.coordinates.forEach(polygon => {
+          polygon.forEach(coord => {
+            const [lng, lat] = coord as [number, number];
+            minLat = Math.min(minLat, lat);
+            maxLat = Math.max(maxLat, lat);
+            minLng = Math.min(minLng, lng);
+            maxLng = Math.max(maxLng, lng);
+          });
+        });
+      });
+      
+      if (minLat !== Infinity && maxLat !== -Infinity) {
+        mapRef.current.fitBounds([[minLat, minLng], [maxLat, maxLng]], 50);
+      }
       return;
     }
     
@@ -106,7 +123,7 @@ export default function MapPage() {
       // Fly to the selected area's center and zoom
       mapRef.current.flyTo([currentArea.centerLat, currentArea.centerLng], currentArea.defaultZoom);
     }
-  }, [selectedAreaId, currentArea, showAllAreas]);
+  }, [selectedAreaId, currentArea, showAllAreas, parcels]);
 
   // Create a map of parcelId to area names
   const parcelToAreasMap = new Map<string, string[]>();
