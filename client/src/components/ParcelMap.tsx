@@ -36,7 +36,6 @@ interface ParcelMapProps {
   onToggleArea?: (parcelId: string) => void;
   adminMode?: boolean;
   isAdminMap?: boolean;
-  fitBounds?: boolean;
   savePositionKey?: string | null;
 }
 
@@ -123,56 +122,6 @@ function MapPositionSaver({ storageKey = 'mapPosition', enabled = true }: { stor
   return null;
 }
 
-function UpdateMapCenter({ center, zoom }: { center?: LatLngExpression, zoom: number }) {
-  const map = useMap();
-  const prevCenterRef = useRef<string | null>(null);
-  const prevZoomRef = useRef<number | null>(null);
-  
-  useEffect(() => {
-    if (center) {
-      // Check if the actual values have changed (not just array reference)
-      const centerStr = JSON.stringify(center);
-      const valuesChanged = prevCenterRef.current !== centerStr || prevZoomRef.current !== zoom;
-      
-      // Only update map if values actually changed
-      if (valuesChanged) {
-        map.setView(center, zoom);
-        // Update refs to track current values
-        prevCenterRef.current = centerStr;
-        prevZoomRef.current = zoom;
-      }
-    }
-  }, [center, zoom, map]);
-  
-  return null;
-}
-
-
-function FitBoundsToParcel({ parcels, swapCoordinates }: { parcels: Parcel[], swapCoordinates: (coords: LatLngExpression[][]) => LatLngExpression[][] }) {
-  const map = useMap();
-  const hasRunRef = useRef(false);
-  
-  useEffect(() => {
-    // Only run once on initial mount
-    if (parcels.length > 0 && !hasRunRef.current) {
-      const bounds = new LatLngBounds([]);
-      
-      parcels.forEach((parcel) => {
-        const leafletCoords = swapCoordinates(parcel.coordinates);
-        leafletCoords[0].forEach((coord) => {
-          bounds.extend(coord as [number, number]);
-        });
-      });
-      
-      if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [50, 50] });
-        hasRunRef.current = true;
-      }
-    }
-  }, [parcels, map, swapCoordinates]);
-  
-  return null;
-}
 
 // Component to handle dynamic markers and labels that scale with zoom
 function DynamicMarkers({ 
@@ -528,7 +477,7 @@ function ParcelPopupContent({
   );
 }
 
-const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, onToggleArea, adminMode = false, isAdminMap = false, fitBounds = false, savePositionKey = 'mapPosition' }, ref) => {
+const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, onToggleArea, adminMode = false, isAdminMap = false, savePositionKey = 'mapPosition' }, ref) => {
   const mapRef = useRef<LeafletMap>(null);
 
   useImperativeHandle(ref, () => ({
@@ -602,11 +551,6 @@ const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = 
       >
         <MapClickHandler />
         {savePositionKey && <MapPositionSaver storageKey={savePositionKey} enabled={true} />}
-        {fitBounds ? (
-          <FitBoundsToParcel parcels={parcels} swapCoordinates={swapCoordinates} />
-        ) : (
-          <UpdateMapCenter center={center} zoom={zoom} />
-        )}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
