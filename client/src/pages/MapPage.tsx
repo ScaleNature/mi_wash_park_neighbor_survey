@@ -1,4 +1,4 @@
-import ParcelMap, { Parcel } from "@/components/ParcelMap";
+import ParcelMap, { Parcel, ParcelMapRef } from "@/components/ParcelMap";
 import { useQuery } from "@tanstack/react-query";
 import { LatLngExpression } from 'leaflet';
 import { useState, useEffect, useRef } from 'react';
@@ -42,6 +42,7 @@ function calculateStatus(q1?: boolean | null, q2?: boolean | null): ParcelStatus
 
 export default function MapPage() {
   const [, setLocation] = useLocation();
+  const mapRef = useRef<ParcelMapRef>(null);
   
   // Check if user is logged in as admin
   const { data: session } = useQuery<{ isAdmin: boolean }>({
@@ -90,6 +91,22 @@ export default function MapPage() {
     setSelectedAreaId(value);
     localStorage.removeItem('mapPosition');
   };
+
+  // Navigate map when area selection changes
+  useEffect(() => {
+    if (!mapRef.current) return;
+    
+    if (showAllAreas) {
+      // When "Show All Areas" is selected, fit bounds to all parcels
+      // The fitBounds prop will handle this
+      return;
+    }
+    
+    if (currentArea) {
+      // Fly to the selected area's center and zoom
+      mapRef.current.flyTo([currentArea.centerLat, currentArea.centerLng], currentArea.defaultZoom);
+    }
+  }, [selectedAreaId, currentArea, showAllAreas]);
 
   // Create a map of parcelId to area names
   const parcelToAreasMap = new Map<string, string[]>();
@@ -165,6 +182,7 @@ export default function MapPage() {
         </div>
       )}
       <ParcelMap 
+        ref={mapRef}
         parcels={parcels} 
         center={center} 
         zoom={zoom}
