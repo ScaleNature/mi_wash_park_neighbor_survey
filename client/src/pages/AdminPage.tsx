@@ -846,6 +846,7 @@ export default function AdminPage() {
                 onToggleArea={handleParcelClick}
                 adminMode={true}
                 isAdminMap={true}
+                savePositionKey={null}
               />
             </div>
             {selectedAreaId && (

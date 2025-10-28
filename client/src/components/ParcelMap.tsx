@@ -37,6 +37,7 @@ interface ParcelMapProps {
   adminMode?: boolean;
   isAdminMap?: boolean;
   fitBounds?: boolean;
+  savePositionKey?: string | null;
 }
 
 export interface ParcelMapRef {
@@ -102,18 +103,20 @@ function MapClickHandler() {
   return null;
 }
 
-function MapPositionSaver() {
+function MapPositionSaver({ storageKey = 'mapPosition', enabled = true }: { storageKey?: string, enabled?: boolean }) {
   const map = useMap();
   
   useMapEvents({
     moveend: () => {
-      const center = map.getCenter();
-      const zoom = map.getZoom();
-      const position = {
-        center: [center.lat, center.lng] as [number, number],
-        zoom: zoom
-      };
-      localStorage.setItem('mapPosition', JSON.stringify(position));
+      if (enabled) {
+        const center = map.getCenter();
+        const zoom = map.getZoom();
+        const position = {
+          center: [center.lat, center.lng] as [number, number],
+          zoom: zoom
+        };
+        localStorage.setItem(storageKey, JSON.stringify(position));
+      }
     },
   });
   
@@ -147,9 +150,11 @@ function UpdateMapCenter({ center, zoom }: { center?: LatLngExpression, zoom: nu
 
 function FitBoundsToParcel({ parcels, swapCoordinates }: { parcels: Parcel[], swapCoordinates: (coords: LatLngExpression[][]) => LatLngExpression[][] }) {
   const map = useMap();
+  const hasRunRef = useRef(false);
   
   useEffect(() => {
-    if (parcels.length > 0) {
+    // Only run once on initial mount
+    if (parcels.length > 0 && !hasRunRef.current) {
       const bounds = new LatLngBounds([]);
       
       parcels.forEach((parcel) => {
@@ -161,6 +166,7 @@ function FitBoundsToParcel({ parcels, swapCoordinates }: { parcels: Parcel[], sw
       
       if (bounds.isValid()) {
         map.fitBounds(bounds, { padding: [50, 50] });
+        hasRunRef.current = true;
       }
     }
   }, [parcels, map, swapCoordinates]);
@@ -522,7 +528,7 @@ function ParcelPopupContent({
   );
 }
 
-const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, onToggleArea, adminMode = false, isAdminMap = false, fitBounds = false }, ref) => {
+const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, onToggleArea, adminMode = false, isAdminMap = false, fitBounds = false, savePositionKey = 'mapPosition' }, ref) => {
   const mapRef = useRef<LeafletMap>(null);
 
   useImperativeHandle(ref, () => ({
@@ -595,7 +601,7 @@ const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = 
         className="z-0"
       >
         <MapClickHandler />
-        <MapPositionSaver />
+        {savePositionKey && <MapPositionSaver storageKey={savePositionKey} enabled={true} />}
         {fitBounds ? (
           <FitBoundsToParcel parcels={parcels} swapCoordinates={swapCoordinates} />
         ) : (
