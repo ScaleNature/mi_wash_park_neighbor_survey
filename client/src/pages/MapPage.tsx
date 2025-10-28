@@ -123,13 +123,14 @@ export default function MapPage() {
   useEffect(() => {
     if (!mapRef.current) return;
     
-    if (showAllAreas && parcels.length > 0) {
-      // Calculate bounds from all parcels
+    if (showAllAreas && parcelsData && parcelsData.length > 0) {
+      // Calculate bounds from all parcels using raw parcelsData
       let minLat = Infinity, maxLat = -Infinity;
       let minLng = Infinity, maxLng = -Infinity;
       
-      parcels.forEach(parcel => {
-        parcel.coordinates.forEach(polygon => {
+      parcelsData.forEach(parcel => {
+        const coords = parcel.geometry.coordinates;
+        coords.forEach(polygon => {
           polygon.forEach(coord => {
             const [lng, lat] = coord as [number, number];
             minLat = Math.min(minLat, lat);
@@ -150,7 +151,7 @@ export default function MapPage() {
       // Fly to the selected area's center and zoom
       mapRef.current.flyTo([currentArea.centerLat, currentArea.centerLng], currentArea.defaultZoom);
     }
-  }, [selectedAreaId, currentArea, showAllAreas, parcels]);
+  }, [selectedAreaId, currentArea, showAllAreas, parcelsData]);
 
   const handleParcelClick = (parcelId: string) => {
     setLocation(`/survey?parcelId=${encodeURIComponent(parcelId)}`);
