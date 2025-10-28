@@ -38,8 +38,6 @@ interface ParcelMapProps {
   isAdminMap?: boolean;
   fitBounds?: boolean;
   savePositionKey?: string | null;
-  onManualMove?: () => void;
-  isProgrammaticNavRef?: React.MutableRefObject<boolean>;
 }
 
 export interface ParcelMapRef {
@@ -105,7 +103,7 @@ function MapClickHandler() {
   return null;
 }
 
-function MapPositionSaver({ storageKey = 'mapPosition', enabled = true, onManualMove, isProgrammaticRef }: { storageKey?: string, enabled?: boolean, onManualMove?: () => void, isProgrammaticRef?: React.MutableRefObject<boolean> }) {
+function MapPositionSaver({ storageKey = 'mapPosition', enabled = true }: { storageKey?: string, enabled?: boolean }) {
   const map = useMap();
   
   useMapEvents({
@@ -118,17 +116,6 @@ function MapPositionSaver({ storageKey = 'mapPosition', enabled = true, onManual
           zoom: zoom
         };
         localStorage.setItem(storageKey, JSON.stringify(position));
-        
-        // Only call onManualMove if this wasn't programmatic navigation
-        const wasProgrammatic = isProgrammaticRef?.current || false;
-        if (!wasProgrammatic && onManualMove) {
-          onManualMove();
-        }
-        
-        // Reset the flag after handling
-        if (isProgrammaticRef) {
-          isProgrammaticRef.current = false;
-        }
       }
     },
   });
@@ -541,7 +528,7 @@ function ParcelPopupContent({
   );
 }
 
-const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, onToggleArea, adminMode = false, isAdminMap = false, fitBounds = false, savePositionKey = 'mapPosition', onManualMove, isProgrammaticNavRef }, ref) => {
+const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, onToggleArea, adminMode = false, isAdminMap = false, fitBounds = false, savePositionKey = 'mapPosition' }, ref) => {
   const mapRef = useRef<LeafletMap>(null);
 
   useImperativeHandle(ref, () => ({
@@ -614,7 +601,7 @@ const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = 
         className="z-0"
       >
         <MapClickHandler />
-        {savePositionKey && <MapPositionSaver storageKey={savePositionKey} enabled={true} onManualMove={onManualMove} isProgrammaticRef={isProgrammaticNavRef} />}
+        {savePositionKey && <MapPositionSaver storageKey={savePositionKey} enabled={true} />}
         {fitBounds ? (
           <FitBoundsToParcel parcels={parcels} swapCoordinates={swapCoordinates} />
         ) : (

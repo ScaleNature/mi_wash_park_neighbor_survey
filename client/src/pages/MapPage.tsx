@@ -43,7 +43,6 @@ function calculateStatus(q1?: boolean | null, q2?: boolean | null): ParcelStatus
 export default function MapPage() {
   const [, setLocation] = useLocation();
   const mapRef = useRef<ParcelMapRef>(null);
-  const isProgrammaticNavRef = useRef(false);
   
   // Check if user is logged in as admin
   const { data: session } = useQuery<{ isAdmin: boolean }>({
@@ -54,21 +53,11 @@ export default function MapPage() {
     queryKey: ["/api/areas"],
   });
 
-  const [selectedAreaId, setSelectedAreaId] = useState<string | null>("all");
-
   const { data: parcelsData, isLoading } = useQuery<ParcelData[]>({
     queryKey: ["/api/survey/parcels"],
   });
 
-  // "all" means show all areas, otherwise use selected area or first area
-  const showAllAreas = selectedAreaId === "all";
-  const currentArea = showAllAreas 
-    ? null
-    : (selectedAreaId 
-        ? areas?.find(a => a.id === selectedAreaId)
-        : areas?.[0]);
-
-  // Load saved position from localStorage on initial mount
+  // Load saved position from localStorage on initial mount, or use default center
   const [savedMapPosition] = useState<{center: [number, number], zoom: number} | null>(() => {
     try {
       const saved = localStorage.getItem('mapPosition');
@@ -78,24 +67,46 @@ export default function MapPage() {
     }
   });
 
-  // Use saved position if available, otherwise use area defaults
   const center: [number, number] = savedMapPosition
     ? savedMapPosition.center
-    : [currentArea?.centerLat ?? 42.2808, currentArea?.centerLng ?? -83.7430];
+    : [42.2808, -83.7430];
   
-  const zoom = savedMapPosition
-    ? savedMapPosition.zoom
-    : (currentArea?.defaultZoom ?? 16);
+  const zoom = savedMapPosition ? savedMapPosition.zoom : 16;
 
-  // Clear saved position and fly to area defaults when user selects a different area
-  const handleAreaChange = (value: string) => {
-    setSelectedAreaId(value);
-    localStorage.removeItem('mapPosition');
-  };
-
-  // When user manually moves the map, set selection to "Custom View"
-  const handleManualMove = () => {
-    setSelectedAreaId(null);
+  // Jump to area when selected from dropdown
+  const handleJumpToArea = (value: string) => {
+    if (!mapRef.current) return;
+    
+    if (value === "all") {
+      // Fit bounds to show all parcels
+      if (parcelsData && parcelsData.length > 0) {
+        let minLat = Infinity, maxLat = -Infinity;
+        let minLng = Infinity, maxLng = -Infinity;
+        
+        parcelsData.forEach(parcel => {
+          const coords = parcel.geometry.coordinates;
+          coords.forEach(polygon => {
+            polygon.forEach(coord => {
+              const [lng, lat] = coord as [number, number];
+              minLat = Math.min(minLat, lat);
+              maxLat = Math.max(maxLat, lat);
+              minLng = Math.min(minLng, lng);
+              maxLng = Math.max(maxLng, lng);
+            });
+          });
+        });
+        
+        if (minLat !== Infinity && maxLat !== -Infinity) {
+          mapRef.current.fitBounds([[minLat, minLng], [maxLat, maxLng]], 50);
+        }
+      }
+    } else {
+      // Jump to specific area
+      const area = areas?.find(a => a.id === value);
+      if (area) {
+        mapRef.current.flyTo([area.centerLat, area.centerLng], area.defaultZoom);
+      }
+    }
   };
 
   // Create a map of parcelId to area names
@@ -125,41 +136,6 @@ export default function MapPage() {
     areaNames: parcelToAreasMap.get(p.id) || [],
   })) || [];
 
-  // Navigate map when area selection changes
-  useEffect(() => {
-    if (!mapRef.current) return;
-    
-    if (showAllAreas && parcelsData && parcelsData.length > 0) {
-      // Calculate bounds from all parcels using raw parcelsData
-      let minLat = Infinity, maxLat = -Infinity;
-      let minLng = Infinity, maxLng = -Infinity;
-      
-      parcelsData.forEach(parcel => {
-        const coords = parcel.geometry.coordinates;
-        coords.forEach(polygon => {
-          polygon.forEach(coord => {
-            const [lng, lat] = coord as [number, number];
-            minLat = Math.min(minLat, lat);
-            maxLat = Math.max(maxLat, lat);
-            minLng = Math.min(minLng, lng);
-            maxLng = Math.max(maxLng, lng);
-          });
-        });
-      });
-      
-      if (minLat !== Infinity && maxLat !== -Infinity) {
-        isProgrammaticNavRef.current = true;
-        mapRef.current.fitBounds([[minLat, minLng], [maxLat, maxLng]], 50);
-      }
-      return;
-    }
-    
-    if (currentArea) {
-      // Fly to the selected area's center and zoom
-      isProgrammaticNavRef.current = true;
-      mapRef.current.flyTo([currentArea.centerLat, currentArea.centerLng], currentArea.defaultZoom);
-    }
-  }, [selectedAreaId, currentArea, showAllAreas, parcelsData]);
 
   const handleParcelClick = (parcelId: string) => {
     setLocation(`/survey?parcelId=${encodeURIComponent(parcelId)}`);
@@ -177,26 +153,14 @@ export default function MapPage() {
     <div className="relative h-[calc(100vh-4rem)]">
       {areas && areas.length > 0 && (
         <div className="absolute top-4 right-4 z-[1000]">
-          <Select 
-            value={selectedAreaId || "custom"} 
-            onValueChange={handleAreaChange}
-          >
+          <Select onValueChange={handleJumpToArea}>
             <SelectTrigger 
               className="w-64 bg-card shadow-md"
               data-testid="select-area"
             >
-              <SelectValue placeholder="Select an area" />
+              <SelectValue placeholder="Jump To..." />
             </SelectTrigger>
             <SelectContent>
-              {selectedAreaId === null && (
-                <SelectItem 
-                  value="custom"
-                  data-testid="select-area-custom"
-                  disabled
-                >
-                  Custom View
-                </SelectItem>
-              )}
               <SelectItem 
                 value="all"
                 data-testid="select-area-all"
@@ -221,11 +185,8 @@ export default function MapPage() {
         parcels={parcels} 
         center={center} 
         zoom={zoom}
-        fitBounds={showAllAreas && !savedMapPosition}
         adminMode={session?.isAdmin || false}
         onParcelClick={session?.isAdmin ? handleParcelClick : undefined}
-        onManualMove={handleManualMove}
-        isProgrammaticNavRef={isProgrammaticNavRef}
       />
     </div>
   );
