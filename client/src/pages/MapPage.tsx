@@ -92,6 +92,11 @@ export default function MapPage() {
     localStorage.removeItem('mapPosition');
   };
 
+  // When user manually moves the map, set selection to "Custom View"
+  const handleManualMove = () => {
+    setSelectedAreaId(null);
+  };
+
   // Create a map of parcelId to area names
   const parcelToAreasMap = new Map<string, string[]>();
   if (areas) {
@@ -170,7 +175,7 @@ export default function MapPage() {
       {areas && areas.length > 0 && (
         <div className="absolute top-4 right-4 z-[1000]">
           <Select 
-            value={selectedAreaId || areas[0]?.id} 
+            value={selectedAreaId || "custom"} 
             onValueChange={handleAreaChange}
           >
             <SelectTrigger 
@@ -180,6 +185,15 @@ export default function MapPage() {
               <SelectValue placeholder="Select an area" />
             </SelectTrigger>
             <SelectContent>
+              {selectedAreaId === null && (
+                <SelectItem 
+                  value="custom"
+                  data-testid="select-area-custom"
+                  disabled
+                >
+                  Custom View
+                </SelectItem>
+              )}
               <SelectItem 
                 value="all"
                 data-testid="select-area-all"
@@ -207,6 +221,7 @@ export default function MapPage() {
         fitBounds={showAllAreas && !savedMapPosition}
         adminMode={session?.isAdmin || false}
         onParcelClick={session?.isAdmin ? handleParcelClick : undefined}
+        onManualMove={handleManualMove}
       />
     </div>
   );

@@ -38,6 +38,7 @@ interface ParcelMapProps {
   isAdminMap?: boolean;
   fitBounds?: boolean;
   savePositionKey?: string | null;
+  onManualMove?: () => void;
 }
 
 export interface ParcelMapRef {
@@ -103,8 +104,24 @@ function MapClickHandler() {
   return null;
 }
 
-function MapPositionSaver({ storageKey = 'mapPosition', enabled = true }: { storageKey?: string, enabled?: boolean }) {
+function MapPositionSaver({ storageKey = 'mapPosition', enabled = true, onManualMove }: { storageKey?: string, enabled?: boolean, onManualMove?: () => void }) {
   const map = useMap();
+  const isAnimatingRef = useRef(false);
+  
+  // Track when programmatic navigation starts
+  useEffect(() => {
+    const handleMoveStart = () => {
+      // If the map is currently flying/animating, it's programmatic
+      if (map.isMoving?.()) {
+        isAnimatingRef.current = true;
+      }
+    };
+    
+    map.on('movestart', handleMoveStart);
+    return () => {
+      map.off('movestart', handleMoveStart);
+    };
+  }, [map]);
   
   useMapEvents({
     moveend: () => {
@@ -116,6 +133,14 @@ function MapPositionSaver({ storageKey = 'mapPosition', enabled = true }: { stor
           zoom: zoom
         };
         localStorage.setItem(storageKey, JSON.stringify(position));
+        
+        // If movement was NOT from animation/programmatic navigation, it's manual
+        if (!isAnimatingRef.current && onManualMove) {
+          onManualMove();
+        }
+        
+        // Reset the flag
+        isAnimatingRef.current = false;
       }
     },
   });
@@ -528,7 +553,7 @@ function ParcelPopupContent({
   );
 }
 
-const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, onToggleArea, adminMode = false, isAdminMap = false, fitBounds = false, savePositionKey = 'mapPosition' }, ref) => {
+const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, onToggleArea, adminMode = false, isAdminMap = false, fitBounds = false, savePositionKey = 'mapPosition', onManualMove }, ref) => {
   const mapRef = useRef<LeafletMap>(null);
 
   useImperativeHandle(ref, () => ({
@@ -601,7 +626,7 @@ const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = 
         className="z-0"
       >
         <MapClickHandler />
-        {savePositionKey && <MapPositionSaver storageKey={savePositionKey} enabled={true} />}
+        {savePositionKey && <MapPositionSaver storageKey={savePositionKey} enabled={true} onManualMove={onManualMove} />}
         {fitBounds ? (
           <FitBoundsToParcel parcels={parcels} swapCoordinates={swapCoordinates} />
         ) : (
