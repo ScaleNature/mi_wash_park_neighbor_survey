@@ -53,16 +53,7 @@ export default function MapPage() {
   });
 
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>("all");
-  
-  // Load saved map position from localStorage
-  const savedMapPosition = (() => {
-    try {
-      const saved = localStorage.getItem('mapPosition');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  })();
+  const [savedMapPosition, setSavedMapPosition] = useState<{center: [number, number], zoom: number} | null>(null);
 
   const { data: parcelsData, isLoading } = useQuery<ParcelData[]>({
     queryKey: ["/api/survey/parcels"],
@@ -75,6 +66,18 @@ export default function MapPage() {
     : (selectedAreaId 
         ? areas?.find(a => a.id === selectedAreaId)
         : areas?.[0]);
+
+  // Load saved position from localStorage when switching to "Show All Areas"
+  useEffect(() => {
+    if (showAllAreas) {
+      try {
+        const saved = localStorage.getItem('mapPosition');
+        setSavedMapPosition(saved ? JSON.parse(saved) : null);
+      } catch {
+        setSavedMapPosition(null);
+      }
+    }
+  }, [showAllAreas]);
 
   // Use saved position if available and showing all areas, otherwise use area defaults
   const center: [number, number] = showAllAreas && savedMapPosition
