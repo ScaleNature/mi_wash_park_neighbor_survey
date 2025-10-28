@@ -43,6 +43,7 @@ function calculateStatus(q1?: boolean | null, q2?: boolean | null): ParcelStatus
 export default function MapPage() {
   const [, setLocation] = useLocation();
   const mapRef = useRef<ParcelMapRef>(null);
+  const isProgrammaticNavRef = useRef(false);
   
   // Check if user is logged in as admin
   const { data: session } = useQuery<{ isAdmin: boolean }>({
@@ -147,6 +148,7 @@ export default function MapPage() {
       });
       
       if (minLat !== Infinity && maxLat !== -Infinity) {
+        isProgrammaticNavRef.current = true;
         mapRef.current.fitBounds([[minLat, minLng], [maxLat, maxLng]], 50);
       }
       return;
@@ -154,6 +156,7 @@ export default function MapPage() {
     
     if (currentArea) {
       // Fly to the selected area's center and zoom
+      isProgrammaticNavRef.current = true;
       mapRef.current.flyTo([currentArea.centerLat, currentArea.centerLng], currentArea.defaultZoom);
     }
   }, [selectedAreaId, currentArea, showAllAreas, parcelsData]);
@@ -222,6 +225,7 @@ export default function MapPage() {
         adminMode={session?.isAdmin || false}
         onParcelClick={session?.isAdmin ? handleParcelClick : undefined}
         onManualMove={handleManualMove}
+        isProgrammaticNavRef={isProgrammaticNavRef}
       />
     </div>
   );

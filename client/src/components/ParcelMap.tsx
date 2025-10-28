@@ -39,6 +39,7 @@ interface ParcelMapProps {
   fitBounds?: boolean;
   savePositionKey?: string | null;
   onManualMove?: () => void;
+  isProgrammaticNavRef?: React.MutableRefObject<boolean>;
 }
 
 export interface ParcelMapRef {
@@ -104,24 +105,8 @@ function MapClickHandler() {
   return null;
 }
 
-function MapPositionSaver({ storageKey = 'mapPosition', enabled = true, onManualMove }: { storageKey?: string, enabled?: boolean, onManualMove?: () => void }) {
+function MapPositionSaver({ storageKey = 'mapPosition', enabled = true, onManualMove, isProgrammaticRef }: { storageKey?: string, enabled?: boolean, onManualMove?: () => void, isProgrammaticRef?: React.MutableRefObject<boolean> }) {
   const map = useMap();
-  const isAnimatingRef = useRef(false);
-  
-  // Track when programmatic navigation starts
-  useEffect(() => {
-    const handleMoveStart = () => {
-      // If the map is currently flying/animating, it's programmatic
-      if (map.isMoving?.()) {
-        isAnimatingRef.current = true;
-      }
-    };
-    
-    map.on('movestart', handleMoveStart);
-    return () => {
-      map.off('movestart', handleMoveStart);
-    };
-  }, [map]);
   
   useMapEvents({
     moveend: () => {
@@ -134,13 +119,16 @@ function MapPositionSaver({ storageKey = 'mapPosition', enabled = true, onManual
         };
         localStorage.setItem(storageKey, JSON.stringify(position));
         
-        // If movement was NOT from animation/programmatic navigation, it's manual
-        if (!isAnimatingRef.current && onManualMove) {
+        // Only call onManualMove if this wasn't programmatic navigation
+        const wasProgrammatic = isProgrammaticRef?.current || false;
+        if (!wasProgrammatic && onManualMove) {
           onManualMove();
         }
         
-        // Reset the flag
-        isAnimatingRef.current = false;
+        // Reset the flag after handling
+        if (isProgrammaticRef) {
+          isProgrammaticRef.current = false;
+        }
       }
     },
   });
@@ -553,7 +541,7 @@ function ParcelPopupContent({
   );
 }
 
-const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, onToggleArea, adminMode = false, isAdminMap = false, fitBounds = false, savePositionKey = 'mapPosition', onManualMove }, ref) => {
+const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = [42.2808, -83.7430], zoom = 16, onParcelClick, onToggleArea, adminMode = false, isAdminMap = false, fitBounds = false, savePositionKey = 'mapPosition', onManualMove, isProgrammaticNavRef }, ref) => {
   const mapRef = useRef<LeafletMap>(null);
 
   useImperativeHandle(ref, () => ({
@@ -626,7 +614,7 @@ const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = 
         className="z-0"
       >
         <MapClickHandler />
-        {savePositionKey && <MapPositionSaver storageKey={savePositionKey} enabled={true} onManualMove={onManualMove} />}
+        {savePositionKey && <MapPositionSaver storageKey={savePositionKey} enabled={true} onManualMove={onManualMove} isProgrammaticRef={isProgrammaticNavRef} />}
         {fitBounds ? (
           <FitBoundsToParcel parcels={parcels} swapCoordinates={swapCoordinates} />
         ) : (
