@@ -168,7 +168,7 @@ export default function MapPage() {
         parcels={parcels} 
         center={center} 
         zoom={zoom}
-        fitBounds={showAllAreas}
+        fitBounds={showAllAreas && !savedMapPosition}
         adminMode={session?.isAdmin || false}
         onParcelClick={session?.isAdmin ? handleParcelClick : undefined}
       />
