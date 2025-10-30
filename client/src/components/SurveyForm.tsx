@@ -127,7 +127,7 @@ export default function SurveyForm({
             <div className="flex-1">
               <CardTitle className="text-lg">Invasive Species Removal Support (Optional)</CardTitle>
               <CardDescription className="mt-2">
-                I welcome Park Stewards to remove invasive species in Molin Nature Area near my property.
+                I welcome Park Stewards to remove invasive species in the nature area near my property.
               </CardDescription>
             </div>
             {(q1 || q1Comment) && (
