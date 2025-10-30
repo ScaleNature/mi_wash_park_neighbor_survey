@@ -42,6 +42,7 @@ export default function AdminPage() {
   // Check admin session
   const { data: session, isLoading: sessionLoading } = useQuery<{ isAdmin: boolean }>({
     queryKey: ["/api/admin/session"],
+    staleTime: 0, // Always refetch session to stay in sync
   });
 
   // Get settings
@@ -537,7 +538,10 @@ export default function AdminPage() {
 
   if (!session?.isAdmin) {
     return <AdminLogin onLoginSuccess={() => {
+      // Optimistically update the cache for immediate UI feedback
       queryClient.setQueryData(["/api/admin/session"], { isAdmin: true });
+      // Then invalidate to trigger a refetch that confirms the session
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/session"] });
     }} />;
   }
 
