@@ -130,6 +130,16 @@ export default function AdminPage() {
     }
   }, [selectedAreaId, areas]);
 
+  // Pan/zoom map when area selection changes
+  useEffect(() => {
+    if (selectedArea && mapRef.current) {
+      mapRef.current.flyTo(
+        [selectedArea.centerLat, selectedArea.centerLng],
+        selectedArea.defaultZoom
+      );
+    }
+  }, [selectedAreaId, selectedArea]);
+
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
