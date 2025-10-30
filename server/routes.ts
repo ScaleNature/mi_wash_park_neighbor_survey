@@ -55,6 +55,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     })
   );
 
+  // Session debugging middleware
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api/admin')) {
+      console.log(`[session] ${req.method} ${req.path}`);
+      console.log(`[session] Session ID: ${req.sessionID}`);
+      console.log(`[session] isAdmin: ${req.session?.isAdmin}`);
+      console.log(`[session] Cookie: ${req.headers.cookie ? 'present' : 'missing'}`);
+    }
+    next();
+  });
+
   // Admin login
   app.post("/api/admin/login", async (req, res) => {
     try {
