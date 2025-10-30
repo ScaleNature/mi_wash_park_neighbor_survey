@@ -502,16 +502,11 @@ export class DbStorage implements IStorage {
   }
 
   private async saveAreasToFile(areas: Area[]): Promise<void> {
-    // Only allow writes in development
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error("Area modifications are not allowed in production");
-    }
-
     try {
       const data: AreaData = {
         areas,
         version: "1.0",
-        description: "Area definitions for Molin Nature Area Neighborhood Support. Edit only in development environment."
+        description: "Area definitions for Molin Nature Area Neighborhood Support"
       };
 
       await fs.writeFile(AREAS_FILE_PATH, JSON.stringify(data, null, 2), 'utf-8');
