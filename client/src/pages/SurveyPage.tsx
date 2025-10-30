@@ -102,7 +102,10 @@ export default function SurveyPage() {
         <div className="mb-6">
           <h1 className="text-3xl font-serif font-bold mb-2">Neighborhood Support</h1>
           <p className="text-muted-foreground">
-            Thank you for participating. Your responses help Park Stewards coordinate invasive species removal efforts.
+            Thank you for participating. Your responses help Park Stewards coordinate invasive species removal efforts. Your responses to Yes/No questions are public and will be visible from the public map page. Your comments are held private and only visible by the administrator.
+          </p>
+          <p className="text-muted-foreground mt-2">
+            Questions, comments, or concerns, please contact: <a href="mailto:molin.nature.area.care@gmail.com" className="text-primary hover:underline">molin.nature.area.care@gmail.com</a>
           </p>
         </div>
         <SurveyForm 
