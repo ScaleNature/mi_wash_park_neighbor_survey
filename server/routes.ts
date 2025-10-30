@@ -199,38 +199,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all parcels within display radius of an area (for admin map display)
   app.get("/api/admin/areas/:areaId/map-parcels", isAdmin, async (req, res) => {
     try {
+      console.log(`[map-parcels] ===== STARTING REQUEST =====`);
+      console.log(`[map-parcels] Environment: ${process.env.NODE_ENV}`);
       const { areaId } = req.params;
+      console.log(`[map-parcels] Area ID: ${areaId}`);
       
       // Get the area to know its center and display radius
       const area = await storage.getAreaById(areaId);
       if (!area) {
+        console.error(`[map-parcels] Area not found: ${areaId}`);
         return res.status(404).json({ message: "Area not found" });
       }
       
       console.log(`[map-parcels] Area: ${area.name}`);
       console.log(`[map-parcels] Center: ${area.centerLat}, ${area.centerLng}`);
       console.log(`[map-parcels] Display radius: ${area.displayRadiusMeters}m`);
+      console.log(`[map-parcels] Area parcelIds array length: ${area.parcelIds?.length || 0}`);
+      if (area.parcelIds && area.parcelIds.length > 0) {
+        console.log(`[map-parcels] First 3 parcel IDs in area: ${area.parcelIds.slice(0, 3).join(', ')}`);
+      }
       
       // Calculate dynamic bounding box based on displayRadiusMeters
       const bbox = calculateBoundingBox(area.centerLat, area.centerLng, area.displayRadiusMeters);
       console.log(`[map-parcels] Bounding box: lat ${bbox.minLat.toFixed(6)} to ${bbox.maxLat.toFixed(6)}, lng ${bbox.minLng.toFixed(6)} to ${bbox.maxLng.toFixed(6)}`);
       
       // Get parcels in bounding box (optional parcels - deterministic square area)
+      console.log(`[map-parcels] Calling getParcelsInBoundingBox...`);
       const nearbyParcels = await storage.getParcelsInBoundingBox(bbox.minLat, bbox.maxLat, bbox.minLng, bbox.maxLng);
       console.log(`[map-parcels] Bounding box returned ${nearbyParcels.length} parcels`);
+      if (nearbyParcels.length > 0) {
+        console.log(`[map-parcels] First nearby parcel ID: ${nearbyParcels[0].id}`);
+      }
       
       // Get parcels already assigned to the area
+      console.log(`[map-parcels] Calling getParcelsInArea...`);
       const selectedParcelIds = await storage.getParcelsInArea(areaId);
       const selectedIdsSet = new Set(selectedParcelIds);
       console.log(`[map-parcels] Area has ${selectedParcelIds.length} assigned parcels`);
+      if (selectedParcelIds.length > 0) {
+        console.log(`[map-parcels] First 3 assigned IDs: ${selectedParcelIds.slice(0, 3).join(', ')}`);
+      }
       
       // Get full data for assigned parcels (NOT filtered by radius - show all assigned regardless of distance)
+      console.log(`[map-parcels] Calling getParcelsByIds for ${selectedParcelIds.length} assigned parcels...`);
       const assignedParcels = selectedParcelIds.length > 0 
         ? await storage.getParcelsByIds(selectedParcelIds)
         : [];
+      console.log(`[map-parcels] getParcelsByIds returned ${assignedParcels.length} parcels`);
+      if (assignedParcels.length > 0) {
+        console.log(`[map-parcels] First assigned parcel: ${assignedParcels[0].id}`);
+      }
       
       // Filter optional parcels to exclude already-assigned ones
       const optionalParcels = nearbyParcels.filter(parcel => !selectedIdsSet.has(parcel.id));
+      console.log(`[map-parcels] After filtering: ${optionalParcels.length} optional parcels`);
       
       // Combine: ALL assigned parcels + optional parcels in bounding box
       // Return full parcel objects with all fields (codePhrase, survey responses, etc.)
@@ -239,12 +261,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...optionalParcels
       ];
       
-      console.log(`[map-parcels] Returning ${allParcels.length} parcels: ${assignedParcels.length} assigned + ${optionalParcels.length} optional`);
+      console.log(`[map-parcels] ===== RETURNING ${allParcels.length} PARCELS: ${assignedParcels.length} assigned + ${optionalParcels.length} optional =====`);
       
       res.json(allParcels);
     } catch (error: any) {
-      console.error("Error in map-parcels endpoint:", error);
-      console.error("Error stack:", error.stack);
+      console.error("[map-parcels] ===== ERROR =====");
+      console.error("[map-parcels] Error message:", error.message);
+      console.error("[map-parcels] Error stack:", error.stack);
+      console.error("[map-parcels] Error details:", error);
       res.status(500).json({ message: error.message });
     }
   });
