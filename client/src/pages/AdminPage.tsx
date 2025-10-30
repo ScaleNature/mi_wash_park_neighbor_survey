@@ -40,7 +40,7 @@ export default function AdminPage() {
   const { toast } = useToast();
 
   // Check admin session
-  const { data: session, isLoading: sessionLoading, refetch: refetchSession } = useQuery<{ isAdmin: boolean }>({
+  const { data: session, isLoading: sessionLoading } = useQuery<{ isAdmin: boolean }>({
     queryKey: ["/api/admin/session"],
   });
 
@@ -536,7 +536,7 @@ export default function AdminPage() {
   }
 
   if (!session?.isAdmin) {
-    return <AdminLogin onLoginSuccess={() => refetchSession()} />;
+    return <AdminLogin onLoginSuccess={() => queryClient.invalidateQueries({ queryKey: ["/api/admin/session"] })} />;
   }
 
   return (
