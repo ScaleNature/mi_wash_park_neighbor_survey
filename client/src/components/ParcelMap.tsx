@@ -400,13 +400,6 @@ function ParcelPopupContent({
           </div>
         </div>
       )}
-      
-      {/* Only show status badge if not "No Response" in admin map context */}
-      {!(isAdminMap && parcel.status === 'none') && (
-        <Badge variant="outline" className={`${statusColors[parcel.status]} mb-1`}>
-          {statusLabels[parcel.status]}
-        </Badge>
-      )}
 
       <div className="text-sm mb-1">
         <p className="leading-none mb-0.5"><strong>Q1: Border Care Permission -</strong> {parcel.q1Response === null ? 'No response' : parcel.q1Response ? 'Yes' : 'No'}</p>
