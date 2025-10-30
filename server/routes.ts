@@ -2,7 +2,8 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./dbStorage";
 import session from "express-session";
-import MemoryStore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
+import pg from "pg";
 import { updateAppSettingsSchema } from "@shared/schema";
 import { z } from "zod";
 import { calculateCentroid, calculateDistance, calculateBoundingBox } from "./geomUtils";
@@ -29,20 +30,26 @@ const isAdmin = (req: Request, res: Response, next: NextFunction) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Session configuration
-  const MemoryStoreSession = MemoryStore(session);
+  // Session configuration with PostgreSQL store for production reliability
+  const PgSession = connectPgSimple(session);
+  const pgPool = new pg.Pool({
+    connectionString: process.env.DATABASE_URL,
+  });
   
   app.use(
     session({
       secret: process.env.SESSION_SECRET || "molin-nature-area-secret-key",
       resave: false,
       saveUninitialized: false,
-      store: new MemoryStoreSession({
-        checkPeriod: 86400000, // prune expired entries every 24h
+      store: new PgSession({
+        pool: pgPool,
+        tableName: 'session',
+        createTableIfMissing: true,
       }),
       cookie: {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "lax" : "lax",
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
       },
     })
