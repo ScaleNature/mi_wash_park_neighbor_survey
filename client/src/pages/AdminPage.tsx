@@ -536,7 +536,9 @@ export default function AdminPage() {
   }
 
   if (!session?.isAdmin) {
-    return <AdminLogin onLoginSuccess={() => queryClient.invalidateQueries({ queryKey: ["/api/admin/session"] })} />;
+    return <AdminLogin onLoginSuccess={() => {
+      queryClient.setQueryData(["/api/admin/session"], { isAdmin: true });
+    }} />;
   }
 
   return (
