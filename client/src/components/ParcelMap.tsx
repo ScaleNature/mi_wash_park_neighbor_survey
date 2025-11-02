@@ -1,3 +1,22 @@
+/**
+ * ParcelMap Component
+ * 
+ * This component serves two distinct use cases:
+ * 
+ * 1. PUBLIC MAP (at `/`):
+ *    - Shows colored parcels based on survey responses (green = support, gray = no response)
+ *    - When admin is logged in: colors remain, but popup gains admin controls
+ *    - Purpose: Public visualization of community support for invasive species removal
+ * 
+ * 2. ADMIN DASHBOARD MAP (at `/admin`):
+ *    - Shows all parcels in uniform gray (no color coding)
+ *    - Includes area management tools (assign/unassign parcels to areas)
+ *    - Purpose: Administrative focus on parcel assignment without color distraction
+ * 
+ * Key Props:
+ * - adminMode: Controls popup content (basic info vs admin controls)
+ * - isAdminMap: Controls parcel styling (colored vs gray) and admin-only features
+ */
 import { useRef, useEffect, forwardRef, useImperativeHandle, useState } from 'react';
 import { MapContainer, TileLayer, Polygon, Popup, Marker, useMap, useMapEvents, WMSTileLayer } from 'react-leaflet';
 import { LatLngExpression, Map as LeafletMap, divIcon, LatLngBounds, DivIcon } from 'leaflet';
@@ -28,6 +47,23 @@ export interface Parcel {
   areaNames?: string[];
 }
 
+/**
+ * Props for ParcelMap component
+ * 
+ * @property parcels - Array of parcel data to display on the map
+ * @property center - Initial map center coordinates [lat, lng]
+ * @property zoom - Initial map zoom level
+ * @property onParcelClick - Callback when parcel is clicked (admin maps only)
+ * @property onToggleArea - Callback to toggle parcel assignment to area (admin dashboard only)
+ * @property adminMode - Controls popup content:
+ *                       - false: Basic popup with survey info and "Participate" button
+ *                       - true: Admin popup with edit controls, survey links, and toggle buttons
+ * @property isAdminMap - Controls parcel visual styling and admin-only features:
+ *                        - false: Colored parcels (green for support, gray for no response) - used on public map
+ *                        - true: Uniform gray parcels for area management focus - used on admin dashboard
+ *                        Also controls display of leaf markers for assigned parcels
+ * @property savePositionKey - Key for saving/restoring map position in localStorage
+ */
 interface ParcelMapProps {
   parcels: Parcel[];
   center?: LatLngExpression;
@@ -488,11 +524,12 @@ const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = 
     getZoom: () => mapRef.current?.getZoom()
   }));
 
-  const getParcelColor = (status: string, adminMode: boolean = false, isSelected: boolean = false) => {
-    if (adminMode) {
-      // In admin mode: use same gray for both assigned and optional parcels
+  const getParcelColor = (status: string, isAdminMap: boolean = false, isSelected: boolean = false) => {
+    if (isAdminMap) {
+      // In admin dashboard map: use uniform gray for all parcels (no color distraction during area management)
       return '#94a3b8';
     }
+    // In public map: color-code based on survey response status
     switch (status) {
       case 'light-green':
         return '#9ed89e';
@@ -503,11 +540,12 @@ const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = 
     }
   };
 
-  const getParcelBorderColor = (status: string, adminMode: boolean = false, isSelected: boolean = false) => {
-    if (adminMode) {
+  const getParcelBorderColor = (status: string, isAdminMap: boolean = false, isSelected: boolean = false) => {
+    if (isAdminMap) {
+      // In admin dashboard map: use uniform gray borders for all parcels
       return '#94a3b8';
     }
-    // Both Q1 support and full support get dark green borders
+    // In public map: green borders for parcels with support (Q1 or full support)
     if (status === 'light-green' || status === 'forest-green') {
       return '#2d7a4f';
     }
@@ -565,8 +603,8 @@ const ParcelMap = forwardRef<ParcelMapRef, ParcelMapProps>(({ parcels, center = 
               key={parcel.id}
               positions={leafletCoords}
               pathOptions={{
-                color: getParcelBorderColor(parcel.status, adminMode, isSelected),
-                fillColor: getParcelColor(parcel.status, adminMode, isSelected),
+                color: getParcelBorderColor(parcel.status, isAdminMap, isSelected),
+                fillColor: getParcelColor(parcel.status, isAdminMap, isSelected),
                 fillOpacity: adminMode ? 0.35 : 0.5,
                 opacity: borderOpacity,
                 weight: 2,
