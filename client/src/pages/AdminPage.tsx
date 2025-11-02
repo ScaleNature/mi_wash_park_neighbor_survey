@@ -854,6 +854,9 @@ export default function AdminPage() {
                   </div>
                 </div>
               )}
+              {/* ADMIN DASHBOARD MAP: Shows all parcels in uniform gray (no color coding) to avoid distraction
+                  when focusing on area management tasks (assigning/unassigning parcels to areas).
+                  For the public map view with colored parcels, see /. */}
               <ParcelMap 
                 ref={mapRef}
                 parcels={selectedAreaId ? mapParcels : []}

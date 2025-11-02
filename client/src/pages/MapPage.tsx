@@ -180,6 +180,9 @@ export default function MapPage() {
           </Select>
         </div>
       )}
+      {/* PUBLIC MAP VIEW: Always shows colored parcels based on survey status (green = support, gray = no response).
+          When an admin is logged in, the colors remain but popup content gains admin controls (edit, copy link).
+          This is NOT the admin dashboard - that's at /admin with uniform gray parcels for area management. */}
       <ParcelMap 
         ref={mapRef}
         parcels={parcels} 
